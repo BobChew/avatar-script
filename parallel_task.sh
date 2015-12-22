@@ -1,0 +1,9 @@
+python question_selction_experiment.py http 127.0.0.1/api 9001 50 50 1 1 > log/syn_50traj_50p_10e_1shake.log 2>&1 &
+python question_selction_experiment.py http 127.0.0.1/api 9001 50 50 1 2 > log/syn_50traj_50p_10e_2shake.log 2>&1 &
+python question_selction_experiment.py http 127.0.0.1/api 9001 50 50 1 3 > log/syn_50traj_50p_10e_3shake.log 2>&1 &
+python question_selction_experiment.py http 127.0.0.1/api 9001 50 50 2 1 > log/syn_50traj_50p_20e_1shake.log 2>&1 &
+python question_selction_experiment.py http 127.0.0.1/api 9001 50 50 2 2 > log/syn_50traj_50p_20e_2shake.log 2>&1 &
+python question_selction_experiment.py http 127.0.0.1/api 9001 50 50 2 3 > log/syn_50traj_50p_20e_3shake.log 2>&1 &
+python question_selction_experiment.py http 127.0.0.1/api 9001 50 50 3 1 > log/syn_50traj_50p_30e_1shake.log 2>&1 &
+python question_selction_experiment.py http 127.0.0.1/api 9001 50 50 3 2 > log/syn_50traj_50p_30e_2shake.log 2>&1 &
+python question_selction_experiment.py http 127.0.0.1/api 9001 50 50 3 3 > log/syn_50traj_50p_30e_3shake.log 2>&1 &
