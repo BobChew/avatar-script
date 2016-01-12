@@ -120,8 +120,9 @@ def build_confidence_table(emission_prob, transition_prob):
     for p in range(len(emission_prob)):
         sample_confidence = []
         for c in range(len(emission_prob[0])):
-            result = fixed_point_hmm(emission_prob, transition_prob, p, c)
-            sample_confidence.append(result)
+            if emission_prob[p][c] != float(1e-300):
+                result = fixed_point_hmm(emission_prob, transition_prob, p, c)
+                sample_confidence.append(result)
         confidence_table.append(sample_confidence)
     return confidence_table
 
@@ -156,16 +157,12 @@ if __name__ == "__main__":
     if len(sys.argv) != 10:
         # Reperform strategy includes: scan, modify
         # Selection strategy includes: forward, backward, binary, random, entropy_dist, entropy_confidence, max_change, min_change
-        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city> <user id> <reperform strategy> <selection strategy> <output file>"
+        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city id> <user id> <reperform strategy> <selection strategy> <output prefix>"
     else:
         # server_prefix = sys.argv[1] + "://" + sys.argv[2] + ":" + sys.argv[3] + "/avatar/"
         server_prefix = sys.argv[1] + "://" + sys.argv[2] + "/avatar/"
         ground_truth_src = sys.argv[4]
-        if sys.argv[5] in ["shenzhen", "Shenzhen"]:
-            city = 3
-        else:
-            print "No map for this city!"
-            exit()
+        city = int(sys.argv[5])
         if sys.argv[7] not in ["scan", "modify"]:
             print "No such reperform strategy!"
             print "Reperform strategy inlcudes: scan, modify"
@@ -175,10 +172,11 @@ if __name__ == "__main__":
             print "Selection strategy includes: forward, binary, random, entropy_dist, entropy_confidence, max_change, min_change"
             exit()
         uid = sys.argv[6]
-        result_src = sys.argv[9]
+        output_prefix = sys.argv[9]
         # Build ground truth index
         ground_truth_file = open(ground_truth_src, "r")
-        output = open(result_src, "a")
+        result_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8], "a")
+        time_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8] + "_time", "a")
         for line in ground_truth_file.readlines():
             ground_truth = json.loads(line)
             true_path = {}
@@ -267,6 +265,8 @@ if __name__ == "__main__":
                     print sorted_index
             # Start reperform map matching process
             selection_num = 0
+            merged_p = None
+            merged_r = None
             while len(trace["p"]) != match_result[0]:
                 # Sequentially choose samples along the trajectory to ask user
                 if sys.argv[8] == "forward":
@@ -275,10 +275,20 @@ if __name__ == "__main__":
                     p_index = shuffle_index[selection_num]
                 elif sys.argv[8] in ["entropy_dist", "entropy_confidence", "max_change", "min_change"]:
                     p_index = sorted_index[selection_num]
-                reperform_launch = 1
                 # For modify strategy, if the point is mapped to the right road, no need to reperform map matching
-                if sys.argv[7] == "modify" and p_index not in match_result[1]:
+                # For scan strategy, if the point is mapped to the right road, merge the point to reperform later
+                # if sys.argv[7] == "modify" and p_index not in match_result[1]:
+                if p_index not in match_result[1]:
                     reperform_launch = 0
+                else:
+                    reperform_launch = 1
+                sample_id = trace["p"][p_index]["id"]
+                if sys.argv[7] == "modify" or merged_p is None:
+                    merged_p = sample_id
+                    merged_r = true_path[p_index]
+                else:
+                    merged_p += "," + sample_id
+                    merged_r += "," + true_path[p_index]
                 if p_index not in match_result[1]:
                     pass_num += 1
                 else:
@@ -287,11 +297,14 @@ if __name__ == "__main__":
                 if reperform_launch == 1:
                     if DEBUG:
                         print "Reperform map matching at " + str(p_index) + "th point!"
-                    reperform_num += 1
-                    sample_id = trace["p"][p_index]["id"]
+                    if sys.argv[7] == "modify":
+                        reperform_num += 1
+                    else:
+                        reperform_num = selection_num + 1
+                    # sample_id = trace["p"][p_index]["id"]
                     task_start = time.time()
                     url_with_label = server_prefix + "map-matching/perform_with_label/?city=" + str(
-                        city) + "&id=" + traj_id + "&pid=" + sample_id + "&rid=" + true_path[p_index] + "&uid=" + uid
+                        city) + "&id=" + traj_id + "&pid=" + merged_p + "&rid=" + merged_r + "&uid=" + uid
                     if DEBUG:
                         print str(reperform_num) + "th reperform map matching url is: " + url_with_label
                     remap_matching_info = urllib2.urlopen(url_with_label)
@@ -304,6 +317,9 @@ if __name__ == "__main__":
                         print "The trajectory contains " + str(len(trace["p"])) + " samples. After " + str(
                             reperform_num) + "th reperform map matching, " + str(
                             match_result[0]) + " samples has been matched to the right road!"
+                if sys.argv[7] == "scan":
+                    merged_p = None
+                    merged_r = None
                 selection_num += 1
                 if selection_num == len(trace["p"]) and len(trace["p"]) != match_result[0]:
                     if sys.argv[7] == "scan":
@@ -314,15 +330,20 @@ if __name__ == "__main__":
                         break
                     elif sys.argv[7] == "modify":
                         selection_num = 0
-            output_vector = [traj_id, uid, reperform_num, pass_num, modify_num, task_time]
+            result_vector = [traj_id, uid, reperform_num, pass_num, modify_num]
+            time_vector = [traj_id, uid, task_time]
             if sys.argv[8] in ["random", "binary"]:
-                output_vector.append(shuffle_index)
+                result_vector.append(shuffle_index)
             if sys.argv[8] in ["entropy_dist", "entropy_confidence", "max_change", "min_change"]:
-                output_vector.append(sorted_index)
-            output_str = json.dumps(output_vector)
-            output.write(output_str + "\n")
+                result_vector.append(sorted_index)
+            result_str = json.dumps(result_vector)
+            result_file.write(result_str + "\n")
+            time_str = json.dumps(time_vector)
+            time_file.write(time_str + "\n")
             # output.write(traj_id + "," + uid + "," + sys.argv[7] + "," + sys.argv[8] + "," + str(reperform_num) + "\n")
             if DEBUG:
                 print str(
                     reperform_num) + " reperform map matching process are performed before the entire trajectory match the ground truth!"
-        output.close()
+        result_file.close()
+        time_file.close()
+        ground_truth_file.close()
