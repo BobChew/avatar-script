@@ -7,7 +7,7 @@ if __name__ == "__main__":
     # edge = [1, 2, 3]
     # shake = [1, 2, 3]
     if len(sys.argv) != 8:
-        print "Input format: python preparation.py <protocol> <ip address> <port> <num_traj> <num_sample> <num_edge> <shake>"
+        print "Input format: python preparation.py <protocol> <ip address> <port> <num_traj> <num_sample> <sparsity> <shake>"
     else:
         num_traj = sys.argv[4]
         num_sample = sys.argv[5]

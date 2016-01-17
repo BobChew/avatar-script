@@ -23,7 +23,7 @@ def compare_result_with_truth(result, truth):
 
 if __name__ == "__main__":
     if len(sys.argv) != 10:
-        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <output repository> <city id> <num of traj> <num of sample> <num of edges> <shake>"
+        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <output repository> <city id> <num of traj> <num of sample> <sparsity> <shake>"
     else:
         # server_prefix = sys.argv[1] + "://" + sys.argv[2] + ":" + sys.argv[3] + "/avatar/"
         server_prefix = sys.argv[1] + "://" + sys.argv[2] + "/avatar/"
