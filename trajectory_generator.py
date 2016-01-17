@@ -63,7 +63,7 @@ if __name__ == "__main__":
                 print "Map matching url is: " + url_hmm
                 map_matching_info = urllib2.urlopen(url_hmm)
                 map_matching_result = json.load(map_matching_info)
-                hmm_path = map_matching_result["traj"]["path"]
+                hmm_path = map_matching_result["path"]
                 task_end = time.time()
                 match_result = compare_result_with_truth(hmm_path, true_path)
                 # Choose the right file to output
