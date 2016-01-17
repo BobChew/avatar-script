@@ -32,7 +32,7 @@ if __name__ == "__main__":
         num_sample = sys.argv[7]
         edge = sys.argv[8]
         shake = sys.argv[9]
-        output_prefix = output_repo + "_" + num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake"
+        output_prefix = output_repo + "ground_truth_" + num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake"
         # Seperater trajectroies with different map matching accuracy range
         output_low_acc = open(output_repo + "_low_acc" + ".json", "a")      # map matching accuracy < 60%
         output_mid_acc = open(output_repo + "_mid_acc" + ".json", "a")      # map matching accuracy >= 60% < 80%

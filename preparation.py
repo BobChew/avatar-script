@@ -13,7 +13,7 @@ if __name__ == "__main__":
         num_sample = sys.argv[5]
         edge = sys.argv[6]
         shake = sys.argv[7]
-        output_src = "../data/synthetic/ground_truth_"
+        output_src = "../data/synthetic/"
         generator_command = "python trajectory_generator.py " + sys.argv[1] + " " + sys.argv[2] + " " + sys.argv[3] + " " + output_src + " 8 " + num_traj + " " + num_sample + " " + str(int(edge) * int(num_sample)) + " " + shake + " 0.0"
         os.system(generator_command)
         # hmm_src = "syn_meta/hmm_result_" + num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake.csv"
