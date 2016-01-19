@@ -316,7 +316,7 @@ if __name__ == "__main__":
                         print str(reperform_num) + "th reperform map matching url is: " + url_with_label
                     remap_matching_info = urllib2.urlopen(url_with_label)
                     remap_matching_result = json.load(remap_matching_info)
-                    hmm_path_with_label = remap_matching_result["path"]
+                    hmm_path_with_label = remap_matching_result
                     task_end = time.time()
                     task_time.append(task_end - task_start)
                     match_result = compare_result_with_truth(hmm_path_with_label, true_path)
