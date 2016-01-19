@@ -56,7 +56,7 @@ def sort_by_entropy(prob_table):
         entropy = Decimal(0.0)
         for prob in sample:
             # Shannon entropy: sum of -p * logbp, we take b = 2
-            if Decimal(prob) >= Decimal(1e-300):
+            if Decimal(prob) > Decimal(1e-300):
                 prob_l = math.log(Decimal(prob), 2)
                 entropy -= Decimal(prob) * Decimal(prob_l)
         entropy_list.append(entropy)
@@ -120,9 +120,11 @@ def build_confidence_table(emission_prob, transition_prob):
     for p in range(len(emission_prob)):
         sample_confidence = []
         for c in range(len(emission_prob[0])):
-            if emission_prob[p][c] != float(1e-300):
+            if Decimal(emission_prob[p][c]) > Decimal(1e-300):
                 result = fixed_point_hmm(emission_prob, transition_prob, p, c)
                 sample_confidence.append(result)
+            else:
+                sample_confidence.append([0.0, None])
         confidence_table.append(sample_confidence)
     return confidence_table
 
@@ -139,13 +141,14 @@ def model_change_table(emission_prob, transition_prob, path_index):
     model_change = []
     brute_force_match = build_confidence_table(emission_prob, transition_prob)
     for p in range(len(brute_force_match)):
-        fixed_confidence = brute_force_match[p][path_index[p]][0]
-        path_change = []
-        confidence_change = []
-        for c in range(len(brute_force_match[p])):
-            if c != path_index[p]:
-                path_change.append(path_index_change(brute_force_match[p][c][1], path_index))
-                confidence_change.append(brute_force_match[p][c][0] - fixed_confidence)
+        if brute_force_match[p][path_index[p]][1] is not None:
+            fixed_confidence = brute_force_match[p][path_index[p]][0]
+            path_change = []
+            confidence_change = []
+            for c in range(len(brute_force_match[p])):
+                if c != path_index[p] and brute_force_match[p][c][1] is not None:
+                    path_change.append(path_index_change(brute_force_match[p][c][1], path_index))
+                    confidence_change.append(brute_force_match[p][c][0] - fixed_confidence)
         # Right now we use average function to aggregate change vector
         avg_path_change = float(sum(path_change)) / float(len(path_change))
         avg_confidence_change = sum(confidence_change) / Decimal(len(confidence_change))
@@ -175,11 +178,14 @@ if __name__ == "__main__":
         output_prefix = sys.argv[9]
         # Build ground truth index
         ground_truth_file = open(ground_truth_src, "r")
-        result_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8], "a")
-        time_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8] + "_time", "a")
+        result_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8] + ".json", "a")
+        time_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8] + "_time.json", "a")
+        # Record the number of right matches after each scan for each trajectory
+        acc_table = []
         for line in ground_truth_file.readlines():
             ground_truth = json.loads(line)
             true_path = {}
+            acc_vector = []
             for fragment in ground_truth["ground_truth"][0]:
                 # Skip the connecting path between two samples
                 if len(fragment[1]) != 0:
@@ -200,11 +206,12 @@ if __name__ == "__main__":
                 print "Map matching url is: " + url_hmm
             map_matching_info = urllib2.urlopen(url_hmm)
             map_matching_result = json.load(map_matching_info)
-            hmm_path = map_matching_result["traj"]["path"]
+            hmm_path = map_matching_result["path"]
             emission_prob = map_matching_result["emission_prob"]
             transition_prob = map_matching_result["transition_prob"]
             path_index = map_matching_result["path_index"]
             match_result = compare_result_with_truth(hmm_path, true_path)
+            acc_vector.append(match_result[0])
             if DEBUG:
                 print "The trajectory contains " + str(len(trace["p"])) + " samples. After initial map matching, " + str(match_result[0]) + " has been matched to the right road!"
             # Delete user history
@@ -313,13 +320,21 @@ if __name__ == "__main__":
                     task_end = time.time()
                     task_time.append(task_end - task_start)
                     match_result = compare_result_with_truth(hmm_path_with_label, true_path)
+                    acc_vector.append(match_result[0])
+                    # If the reperform task is finished before all points are scanned, fill the rest points with max accuracy
+                    if sys.argv[7] == "scan" and match_result[0] == len(trace["p"]):
+                        while len(acc_vector) < len(trace["p"]) + 1:
+                            acc_vector.append(acc_vector[len(acc_vector) - 1])
                     if DEBUG:
                         print "The trajectory contains " + str(len(trace["p"])) + " samples. After " + str(
                             reperform_num) + "th reperform map matching, " + str(
                             match_result[0]) + " samples has been matched to the right road!"
-                if sys.argv[7] == "scan":
-                    merged_p = None
-                    merged_r = None
+                    if sys.argv[7] == "scan":
+                        merged_p = None
+                        merged_r = None
+                # If the point is matched to the right road, copy the accuracy of the previous point
+                elif sys.argv[7] == "scan":
+                    acc_vector.append(acc_vector[len(acc_vector) - 1])
                 selection_num += 1
                 if selection_num == len(trace["p"]) and len(trace["p"]) != match_result[0]:
                     if sys.argv[7] == "scan":
@@ -330,6 +345,7 @@ if __name__ == "__main__":
                         break
                     elif sys.argv[7] == "modify":
                         selection_num = 0
+            acc_table.append(acc_vector)
             result_vector = [traj_id, uid, reperform_num, pass_num, modify_num]
             time_vector = [traj_id, uid, task_time]
             if sys.argv[8] in ["random", "binary"]:
@@ -344,6 +360,10 @@ if __name__ == "__main__":
             if DEBUG:
                 print str(
                     reperform_num) + " reperform map matching process are performed before the entire trajectory match the ground truth!"
+        acc_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8] + "_acc.json", "a")
+        acc_str = json.dumps(acc_table)
+        acc_file.write(acc_str)
+        acc_file.close()
         result_file.close()
         time_file.close()
         ground_truth_file.close()

@@ -28,6 +28,7 @@ if __name__ == "__main__":
         # server_prefix = sys.argv[1] + "://" + sys.argv[2] + ":" + sys.argv[3] + "/avatar/"
         server_prefix = sys.argv[1] + "://" + sys.argv[2] + "/avatar/"
         output_repo = sys.argv[4]
+        city_id = sys.argv[5]
         num_traj = sys.argv[6]
         num_sample = sys.argv[7]
         edge = sys.argv[8]
@@ -41,7 +42,7 @@ if __name__ == "__main__":
         num_mid_acc = 0
         num_high_acc = 0
         while num_low_acc < int(num_traj) or num_mid_acc < int(num_traj) or num_high_acc < int(num_traj):
-            url = server_prefix + "simulator/generate_syn_traj/?city=" + sys.argv[5] + "&traj=1&point=" + num_sample + "&edge=" + str(int(edge) * int(num_sample)) + "&shake=" + shake
+            url = server_prefix + "simulator/generate_syn_traj/?city=" + city_id + "&traj=1&point=" + num_sample + "&edge=" + str(int(edge) * int(num_sample)) + "&shake=" + shake
             # print "Trajectory generator url is: " + url
             try:
                 # Generate a trajectory
@@ -59,7 +60,7 @@ if __name__ == "__main__":
                 path_length = traj_set["path_length"][0]
                 # Perform HMM map matching
                 task_start = time.time()
-                url_hmm = server_prefix + "map-matching/perform/?city=" + sys.argv[5] + "&id=" + traj_id
+                url_hmm = server_prefix + "map-matching/perform/?city=" + city_id + "&id=" + traj_id
                 print "Map matching url is: " + url_hmm
                 map_matching_info = urllib2.urlopen(url_hmm)
                 map_matching_result = json.load(map_matching_info)
