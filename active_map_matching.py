@@ -156,13 +156,12 @@ def model_change_table(emission_prob, transition_prob, path_index):
                 model_change.append([avg_path_change, avg_confidence_change])
             else:
                 print "The target point has no other choice!"
-                if DEBUG:
-                    print brute_force_match[p]
-                model_change.append([0.0, Decimal(0)])
+                # print brute_force_match[p]
+		# print emission_prob[p]
+                model_change.append([None, None])
         else:
             print "The chosen road is too far away from the target point!"
-            if DEBUG:
-                print brute_force_match[p]
+            # print brute_force_match[p]
     return model_change
 
 
