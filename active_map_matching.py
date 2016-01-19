@@ -149,10 +149,20 @@ def model_change_table(emission_prob, transition_prob, path_index):
                 if c != path_index[p] and brute_force_match[p][c][1] is not None:
                     path_change.append(path_index_change(brute_force_match[p][c][1], path_index))
                     confidence_change.append(brute_force_match[p][c][0] - fixed_confidence)
-        # Right now we use average function to aggregate change vector
-        avg_path_change = float(sum(path_change)) / float(len(path_change))
-        avg_confidence_change = sum(confidence_change) / Decimal(len(confidence_change))
-        model_change.append([avg_path_change, avg_confidence_change])
+            # Right now we use average function to aggregate change vector
+            if len(path_change) > 0 and len(confidence_change) > 0:
+                avg_path_change = float(sum(path_change)) / float(len(path_change))
+                avg_confidence_change = sum(confidence_change) / Decimal(len(confidence_change))
+                model_change.append([avg_path_change, avg_confidence_change])
+            else:
+                print "The target point has no other choice!"
+                if DEBUG:
+                    print brute_force_match[p]
+                model_change.append([0.0, Decimal(0)])
+        else:
+            print "The chosen road is too far away from the target point!"
+            if DEBUG:
+                print brute_force_match[p]
     return model_change
 
 
