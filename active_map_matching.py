@@ -245,6 +245,8 @@ if __name__ == "__main__":
                     # print "Get emission table url is: " + url_get_emission
                 # emission_info = urllib2.urlopen(url_get_emission)
                 # emission_table = json.load(emission_info)
+                for i in range(len(emission_prob)):
+                    emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
                 sorted_index = sort_by_entropy(emission_prob)
                 if DEBUG:
                     print sorted_index
@@ -254,7 +256,8 @@ if __name__ == "__main__":
                 for sample in brute_force_match:
                     sample_result = []
                     for result in sample:
-                        sample_result.append(result[0])
+                        if result[1] is not None:
+                            sample_result.append(result[0])
                     confidence_table.append(sample_result)
                 # print confidence_table
                 sorted_index = sort_by_entropy(confidence_table)
