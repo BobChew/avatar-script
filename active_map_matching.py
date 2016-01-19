@@ -157,7 +157,7 @@ def model_change_table(emission_prob, transition_prob, path_index):
             else:
                 print "The target point has no other choice!"
                 # print brute_force_match[p]
-		# print emission_prob[p]
+		        # print emission_prob[p]
                 model_change.append([None, None])
         else:
             print "The chosen road is too far away from the target point!"
@@ -276,6 +276,13 @@ if __name__ == "__main__":
                 # Convert string to int
                 path_index = [int(index) for index in path_index]
                 model_change = model_change_table(emission_prob, transition_prob, path_index)
+                # For those points who have only one candidate road, put them at the bottom of the list
+                for i in range(len(model_change)):
+                    if model_change[i][0] is None:
+                        if sys.argv[8] == "min_change":
+                            model_change[i] = [float("inf"), Decimal("inf")]
+                        elif sys.argv[8] == "max_change":
+                            model_change[i] = [-float("inf"), -Decimal("inf")]
                 # print model_change
                 sorted_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
                 if sys.argv[8] == "max_change":
