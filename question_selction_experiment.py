@@ -26,7 +26,7 @@ if __name__ == "__main__":
         traj_src = traj_repo + "ground_truth_" + num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake_" + acc_level + "_acc" + ".json"
         for active_type in reperform_strategy:
             for order in selection_strategy:
-                active_src = output_repo + "active_result_" + num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake"
+                active_src = output_repo + "active_result_" + num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake_" + acc_level + "_acc"
                 active_hmm_command = "python active_map_matching.py " + sys.argv[1] + " " + sys.argv[2] + " " + sys.argv[3] + " " + traj_src + " " + city_id + " " + uid + " " + active_type + " " + order + " " + active_src
                 os.system(active_hmm_command)
                 print traj_src + " " + active_type + " " + order + " is finished!"

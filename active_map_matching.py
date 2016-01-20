@@ -224,7 +224,7 @@ if __name__ == "__main__":
             if DEBUG:
                 print "The trajectory contains " + str(len(trace["p"])) + " samples. After initial map matching, " + str(match_result[0]) + " has been matched to the right road!"
             # Delete user history
-            url_remove_history = server_prefix + "map-matching/remove_user_action_history/?id=" + traj_id + "&uid=" + uid
+            url_remove_history = server_prefix + "map-matching/remove_user_action_history_from_cache/?id=" + traj_id + "&uid=" + uid
             try:
                 remove_history = urllib2.urlopen(url_remove_history)
             except urllib2.HTTPError, e:
