@@ -70,16 +70,19 @@ if __name__ == "__main__":
                 # Choose the right file to output
                 ground_truth_str = json.dumps(traj_set)
                 accuracy = float(match_result[0]) / float(num_sample)
-                if accuracy < 0.6 and num_low_acc < int(num_traj):
-                    output_low_acc.write(ground_truth_str + "\n")
-                    num_low_acc += 1
-                elif accuracy < 0.8 and num_mid_acc < int(num_traj):
-                    output_mid_acc.write(ground_truth_str + "\n")
-                    num_mid_acc += 1
+                if accuracy < 0.6:
+                    if num_low_acc < int(num_traj):
+                        output_low_acc.write(ground_truth_str + "\n")
+                        num_low_acc += 1
+                elif accuracy < 0.8:
+                    if num_mid_acc < int(num_traj):
+                        output_mid_acc.write(ground_truth_str + "\n")
+                        num_mid_acc += 1
                 # If the map matching result is exactly right, no need to perform active map matching
-                elif accuracy < 1.0 and num_high_acc < int(num_traj):
-                    output_high_acc.write(ground_truth_str + "\n")
-                    num_high_acc += 1
+                elif accuracy < 1.0:
+                    if num_high_acc < int(num_traj):
+                        output_high_acc.write(ground_truth_str + "\n")
+                        num_high_acc += 1
             # print "Created " + str(num_complete_traj) + " trajectories..."
             except urllib2.HTTPError, e:
                 pass
