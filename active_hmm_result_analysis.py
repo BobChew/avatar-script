@@ -8,12 +8,21 @@ def check_ini_acc(acc_table, acc_level):
     check = True
     for acc_vector in acc_table:
         acc = float(acc_vector[0]) / float(acc_vector[len(acc_vector) - 1])
-        if acc_level == "high" and acc < 0.8 or acc >= 1.0:
-            check = False
-        if acc_level == "mid" and acc < 0.6 or acc >= 0.8:
-            check = False
-        if acc_level == "low" and acc >= 0.6:
-            check = False
+        if acc_level == "high":
+            if acc < 0.8 or acc >= 1.0:
+                check = False
+                print acc_vector
+                print acc
+        if acc_level == "mid":
+            if acc < 0.6 or acc >= 0.8:
+                check = False
+                print acc_vector
+                print acc
+        if acc_level == "low":
+            if acc >= 0.6:
+                check = False
+                print acc_vector
+                print acc
     return check
 
 
@@ -56,7 +65,7 @@ if __name__ == "__main__":
             result_table.append(json.loads(line))
         acc_table = json.loads(acc_file.readline())
         avg_scan, avg_modify = result_statistic_analysis(result_table)
-        required = check_ini_acc(acc_table, "mid")
+        required = check_ini_acc(acc_table, "low")
         avg_acc = acc_statistic_analysis(acc_table)
         print required
         print avg_scan

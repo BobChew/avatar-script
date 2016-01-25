@@ -21,13 +21,13 @@ if __name__ == "__main__":
         combined_result = []
         combined_acc = []
         combined_time = []
+        traj_info = num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake_"
         # Read all the trajectory and result records and combine together
         for acc_level in ["high", "mid", "low"]:
-            traj_info = num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake_" + acc_level + "_acc"
-            traj_file = open(traj_repo + "ground_truth_" + traj_info + ".json", "r")
-            result_file = open(result_repo + "active_result_" + traj_info + "_" + strategy + "_" + order + ".json", "r")
-            acc_file = open(result_repo + "active_result_" + traj_info + "_" + strategy + "_" + order + "_time.json", "r")
-            time_file = open(result_repo + "active_result_" + traj_info + "_" + strategy + "_" + order + "_acc.json", "r")
+            traj_file = open(traj_repo + "ground_truth_" + traj_info + acc_level + "_acc.json", "r")
+            result_file = open(result_repo + "active_result_" + traj_info + acc_level + "_acc_" + strategy + "_" + order + ".json", "r")
+            acc_file = open(result_repo + "active_result_" + traj_info + acc_level + "_acc_" + strategy + "_" + order + "_acc.json", "r")
+            time_file = open(result_repo + "active_result_" + traj_info + acc_level + "_acc_" + strategy + "_" + order + "_time.json", "r")
             for line in traj_file.readlines():
                 combined_traj.append(line)
             for line in result_file.readlines():
@@ -42,6 +42,10 @@ if __name__ == "__main__":
             acc_file.close()
         if len(combined_traj) != len(combined_result) or len(combined_traj) != len(combined_acc) or len(combined_traj) != len(combined_time):
             print "Number of trajectories doesn't match number of result records!"
+            print len(combined_traj)
+            print len(combined_result)
+            print len(combined_acc)
+            print len(combined_time)
             exit()
         # Re-partition trajectory and result records into proper files
         new_traj_high = open(new_repo + "ground_truth_" + traj_info + "high_acc.json", "w")
@@ -59,28 +63,28 @@ if __name__ == "__main__":
         for i in range(len(combined_traj)):
             acc = float(combined_acc[i][0]) / float(combined_acc[i][len(combined_acc[i]) - 1])
             if acc < 0.6:
-                new_traj_low.write(combined_traj[i] + "\n")
-                new_result_low.write(combined_result[i] + "\n")
-                new_time_low.write(combined_time[i] + "\n")
+                new_traj_low.write(combined_traj[i])
+                new_result_low.write(combined_result[i])
+                new_time_low.write(combined_time[i])
                 acc_low.append(combined_acc[i])
             elif acc < 0.8:
-                new_traj_mid.write(combined_traj[i] + "\n")
-                new_result_mid.write(combined_result[i] + "\n")
-                new_time_mid.write(combined_time[i] + "\n")
+                new_traj_mid.write(combined_traj[i])
+                new_result_mid.write(combined_result[i])
+                new_time_mid.write(combined_time[i])
                 acc_mid.append(combined_acc[i])
             elif acc < 1.0:
-                new_traj_high.write(combined_traj[i] + "\n")
-                new_result_high.write(combined_result[i] + "\n")
-                new_time_high.write(combined_time[i] + "\n")
+                new_traj_high.write(combined_traj[i])
+                new_result_high.write(combined_result[i])
+                new_time_high.write(combined_time[i])
                 acc_high.append(combined_acc[i])
         new_acc_high = open(new_repo + "active_result_" + traj_info + "high_acc_" + strategy + "_" + order + "_acc.json", "a")
         new_acc_str = json.dumps(acc_high)
         new_acc_high.write(new_acc_str)
-        new_acc_mid = open(new_repo + "active_result_" + traj_info + "high_acc_" + strategy + "_" + order + "_acc.json", "a")
-        new_acc_str = json.dumps(acc_high)
+        new_acc_mid = open(new_repo + "active_result_" + traj_info + "mid_acc_" + strategy + "_" + order + "_acc.json", "a")
+        new_acc_str = json.dumps(acc_mid)
         new_acc_mid.write(new_acc_str)
-        new_acc_low = open(new_repo + "active_result_" + traj_info + "high_acc_" + strategy + "_" + order + "_acc.json", "a")
-        new_acc_str = json.dumps(acc_high)
+        new_acc_low = open(new_repo + "active_result_" + traj_info + "low_acc_" + strategy + "_" + order + "_acc.json", "a")
+        new_acc_str = json.dumps(acc_low)
         new_acc_low.write(new_acc_str)
         new_traj_high.close()
         new_traj_mid.close()
