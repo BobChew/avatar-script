@@ -24,7 +24,7 @@ if __name__ == "__main__":
         # Read all the trajectory and result records and combine together
         for acc_level in ["high", "mid", "low"]:
             traj_info = num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake_" + acc_level + "_acc"
-            traj_file = open(traj_repo + "ground_truth_" + traj_info + acc_level + "_acc.json", "r")
+            traj_file = open(traj_repo + "ground_truth_" + traj_info + ".json", "r")
             result_file = open(result_repo + "active_result_" + traj_info + "_" + strategy + "_" + order + ".json", "r")
             acc_file = open(result_repo + "active_result_" + traj_info + "_" + strategy + "_" + order + "_time.json", "r")
             time_file = open(result_repo + "active_result_" + traj_info + "_" + strategy + "_" + order + "_acc.json", "r")
