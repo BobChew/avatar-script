@@ -50,24 +50,45 @@ def acc_statistic_analysis(acc_table):
     return avg_acc
 
 
+def dataset_analysis(result_src, acc_src):
+    result_file = open(result_src, "r")
+    acc_file = open(acc_src, "r")
+    result_table = []
+    for line in result_file.readlines():
+        result_table.append(json.loads(line))
+    acc_table = json.loads(acc_file.readline())
+    avg_scan, avg_modify = result_statistic_analysis(result_table)
+    required = check_ini_acc(acc_table, "low")
+    avg_acc = acc_statistic_analysis(acc_table)
+    print required
+    return avg_scan, avg_modify, avg_acc
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 8:
         # Reperform strategy includes: scan, modify
         # Selection strategy includes: forward, backward, binary, random, entropy_dist, entropy_confidence, max_change, min_change
-        print "Input format: python active_hmm_result_analysis.py <num_traj> <num of point> <edge> <shake> <mid> "
+        print "Input format: python active_hmm_result_analysis.py <result_repo> <num_traj> <num of point> <edge> <shake> <accuracy level> <output repo>"
     else:
-        result_file = open(sys.argv[1], "r")
-        acc_file = open(sys.argv[2], "r")
-        # result_file = open("active_result_100traj_10p_20e_1shake_mid_acc_scan_forward.json", "r")
-        # acc_file = open("active_result_100traj_10p_20e_1shake_mid_acc_scan_forward_acc.json", "r")
-        result_table = []
-        for line in result_file.readlines():
-            result_table.append(json.loads(line))
-        acc_table = json.loads(acc_file.readline())
-        avg_scan, avg_modify = result_statistic_analysis(result_table)
-        required = check_ini_acc(acc_table, "low")
-        avg_acc = acc_statistic_analysis(acc_table)
-        print required
-        print avg_scan
-        print avg_modify
-        print avg_acc
+        result_repo = sys.argv[1]
+        num_traj = sys.argv[2]
+        num_sample = sys.argv[3]
+        edge = sys.argv[4]
+        shake = sys.argv[5]
+        acc_level = sys.argv[6]
+        output_repo = sys.argv[7]
+        traj_info = num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake_" + acc_level + "_acc"
+        output = open(output_repo + "statistic_result_" + traj_info + ".json", "a")
+        for order in ["forward", "binary", "random", "entropy_dist", "entropy_confidence", "max_change", "min_change"]:
+            result_file = open(result_repo + "active_result_" + traj_info + "_scan_" + order + ".json", "r")
+            acc_file = open(result_repo + "active_result_" + traj_info + "_scan_" + order + "_acc.json", "r")
+            result_table = []
+            for line in result_file.readlines():
+                result_table.append(json.loads(line))
+            acc_table = json.loads(acc_file.readline())
+            avg_scan, avg_modify = result_statistic_analysis(result_table)
+            required = check_ini_acc(acc_table, "low")
+            avg_acc = acc_statistic_analysis(acc_table)
+            print required
+            output.write(json.dumps([order, avg_scan, avg_modify, avg_acc]))
+        output.close()
