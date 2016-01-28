@@ -1,7 +1,7 @@
 import json
 import sys
 
-DEBUG = True
+DEBUG = False
 
 
 def check_ini_acc(acc_table, acc_level):
@@ -76,5 +76,5 @@ if __name__ == "__main__":
             required = check_ini_acc(acc_table, acc_level)
             avg_acc = acc_statistic_analysis(acc_table)
             print required
-            output.write(json.dumps([order, avg_scan, avg_modify, avg_acc]))
+            output.write(json.dumps([order, avg_scan, avg_modify, avg_acc]) + "\n")
         output.close()
