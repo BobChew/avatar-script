@@ -75,6 +75,7 @@ if __name__ == "__main__":
             avg_scan, avg_modify = result_statistic_analysis(result_table)
             required = check_ini_acc(acc_table, acc_level)
             avg_acc = acc_statistic_analysis(acc_table)
-            print required
+            if not required:
+                print result_repo + "active_result_" + traj_info + "_scan_" + order + ".json"
             output.write(json.dumps([order, avg_scan, avg_modify, avg_acc]) + "\n")
         output.close()
