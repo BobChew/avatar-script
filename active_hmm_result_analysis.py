@@ -72,6 +72,7 @@ if __name__ == "__main__":
             for line in result_file.readlines():
                 result_table.append(json.loads(line))
             acc_table = json.loads(acc_file.readline())
+            # print result_repo + "active_result_" + traj_info + "_scan_" + order + ".json"
             avg_scan, avg_modify = result_statistic_analysis(result_table)
             required = check_ini_acc(acc_table, acc_level)
             avg_acc = acc_statistic_analysis(acc_table)

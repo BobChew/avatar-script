@@ -23,7 +23,7 @@ if __name__ == "__main__":
         combined_time = []
         traj_info = num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake_"
         # Read all the trajectory and result records and combine together
-        for acc_level in ["high", "mid"]:
+        for acc_level in ["high", "mid", "low"]:
             traj_file = open(traj_repo + "ground_truth_" + traj_info + acc_level + "_acc.json", "r")
             result_file = open(result_repo + "active_result_" + traj_info + acc_level + "_acc_" + strategy + "_" + order + ".json", "r")
             acc_file = open(result_repo + "active_result_" + traj_info + acc_level + "_acc_" + strategy + "_" + order + "_acc.json", "r")
