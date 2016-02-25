@@ -282,6 +282,7 @@ if __name__ == "__main__":
                     num_remain -= 1
                     if not first_hit:
                         num_first_hit.append(num_selection)
+                        first_hit = True
             num_selection_table.append(num_selection)
             selection_acc.append(float(num_wrong) / float(num_selection))
         # Calculate the statstic result
