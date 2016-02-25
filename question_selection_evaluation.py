@@ -179,6 +179,7 @@ if __name__ == "__main__":
         # result_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8] + ".json", "a")
         # time_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8] + "_time.json", "a")
         # All the results for evaluation
+        selection_time = []
         ini_acc_table = []
         num_selection_table = []
         selection_acc = []
@@ -267,7 +268,7 @@ if __name__ == "__main__":
                 if DEBUG:
                     print sorted_index
             selection_end = time.time()
-            print selection_strategy + " selection method takes " + str(selection_end - selection_start) + " seconds to generate an ordered sequence!"
+            selection_time.append(selection_end - selection_start)
             first_hit = False # When does the first selected point is actually matched wrongly
             num_selection = 0  # How many points are selected before all wrong points are found
             num_wrong = len(trace["p"]) - match_result[0] # Total number of wrong points
@@ -289,11 +290,13 @@ if __name__ == "__main__":
             num_selection_table.append(num_selection)
             selection_acc.append(float(num_wrong) / float(num_selection))
         # Calculate the statstic result
+        avg_time = float(sum(selection_time)) / float(len(selection_time))
         avg_ini_acc = float(sum(ini_acc_table)) / float(len(ini_acc_table))
         avg_num_selection = float(sum(num_selection_table)) / float(len(num_selection_table))
         avg_selection_acc = float(sum(selection_acc)) / float(len(selection_acc))
         avg_first_hit = float(sum(num_first_hit)) / float(len(num_first_hit))
+        print selection_strategy + " selection method takes " + str(avg_time) + " seconds in average to generate an ordered sequence!"
         print str(avg_ini_acc) + " points in average are matched to the right road after initial map matching!"
         print str(avg_first_hit) + " points in average are selected before the first wrong point is found!"
         print str(avg_num_selection) + " points in average are selected before all the wrong points are found!"
-        print "The accuracy of finding wrong points using " + selection_strategy + " strategy is " + str(avg_selection_acc)
+        print "The accuracy of finding wrong points using " + selection_strategy + " strategy is " + str(avg_selection_acc) + " in average!"
