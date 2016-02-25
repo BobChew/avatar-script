@@ -215,6 +215,7 @@ if __name__ == "__main__":
             if DEBUG:
                 print "The trajectory contains " + str(len(trace["p"])) + " samples. After initial map matching, " + str(match_result[0]) + " has been matched to the right road!"
             # Prepare question selection list
+            selection_start = time.time()
             if selection_strategy == "random":
                 shuffle_index = []
                 for i in range(len(trace["p"])):
@@ -265,6 +266,8 @@ if __name__ == "__main__":
                     sorted_index.reverse()
                 if DEBUG:
                     print sorted_index
+            selection_end = time.time()
+            print selection_strategy + " selection method takes " + str(selection_end - selection_start) + " seconds to generate an ordered sequence!"
             first_hit = False # When does the first selected point is actually matched wrongly
             num_selection = 0  # How many points are selected before all wrong points are found
             num_wrong = len(trace["p"]) - match_result[0] # Total number of wrong points
