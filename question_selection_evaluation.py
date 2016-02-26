@@ -146,6 +146,7 @@ def model_change_table(emission_prob, transition_prob, path_index):
             path_change = []
             confidence_change = []
             for c in range(len(brute_force_match[p])):
+                if c != path_index[p] and brute_force_match[p][c][1] is not None:
                     index_diff = path_index_change(brute_force_match[p][c][1], path_index)
                     confidence_diff = abs(brute_force_match[p][c][0] - fixed_confidence)
                     path_change.append([index_diff, confidence_diff])
