@@ -185,6 +185,7 @@ if __name__ == "__main__":
         num_selection_table = []
         selection_acc = []
         num_first_hit = []
+        line_count = 1
         for line in ground_truth_file.readlines():
             ground_truth = json.loads(line)
             true_path = {}
@@ -270,9 +271,6 @@ if __name__ == "__main__":
                     print sorted_index
             # My new mix model strategy
             if selection_strategy == "mix":
-                for i in range(len(emission_prob)):
-                    emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
-                dentropy_index = sort_by_entropy(emission_prob)
                 brute_force_match = build_confidence_table(emission_prob, transition_prob)
                 confidence_table = []
                 for sample in brute_force_match:
@@ -289,6 +287,9 @@ if __name__ == "__main__":
                     if model_change[i][0] is None:
                         model_change[i] = [float("inf"), Decimal("inf")]
                 model_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
+                for i in range(len(emission_prob)):
+                    emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
+                dentropy_index = sort_by_entropy(emission_prob)
                 # combine the ranking lists
                 score_list = [0 for i in range(len(trace["p"]))]
                 for i in range(len(centropy_index)):
@@ -318,6 +319,8 @@ if __name__ == "__main__":
                         first_hit = True
             num_selection_table.append(num_selection)
             selection_acc.append(float(num_wrong) / float(num_selection))
+            print "Finished " + str(line_count) + "trajectories..."
+            line_count += 1
         # Calculate the statstic result
         avg_time = float(sum(selection_time)) / float(len(selection_time))
         avg_ini_acc = float(sum(ini_acc_table)) / float(len(ini_acc_table))
