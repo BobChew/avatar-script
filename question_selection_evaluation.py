@@ -268,6 +268,34 @@ if __name__ == "__main__":
                     sorted_index.reverse()
                 if DEBUG:
                     print sorted_index
+            # My new mix model strategy
+            if selection_strategy == "mix":
+                for i in range(len(emission_prob)):
+                    emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
+                dentropy_index = sort_by_entropy(emission_prob)
+                brute_force_match = build_confidence_table(emission_prob, transition_prob)
+                confidence_table = []
+                for sample in brute_force_match:
+                    sample_result = []
+                    for result in sample:
+                        if result[1] is not None:
+                            sample_result.append(result[0])
+                    confidence_table.append(sample_result)
+                centropy_index = sort_by_entropy(confidence_table)
+                path_index = [int(index) for index in path_index]
+                model_change = model_change_table(emission_prob, transition_prob, path_index)
+                # For those points who have only one candidate road, put them at the bottom of the list
+                for i in range(len(model_change)):
+                    if model_change[i][0] is None:
+                        model_change[i] = [float("inf"), Decimal("inf")]
+                model_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
+                # combine the ranking lists
+                score_list = [0 for i in range(len(trace["p"]))]
+                for i in range(len(centropy_index)):
+                    score_list[dentropy_index[i]] += i
+                    score_list[centropy_index[i]] += i
+                    score_list[model_index[i]] += i
+                sorted_index = sorted(range(len(score_list)), key=lambda k: score_list[k])
             selection_end = time.time()
             selection_time.append(selection_end - selection_start)
             first_hit = False # When does the first selected point is actually matched wrongly
@@ -280,7 +308,7 @@ if __name__ == "__main__":
                     p_index = num_selection
                 elif selection_strategy in ["random", "binary"]:
                     p_index = shuffle_index[num_selection]
-                elif selection_strategy in ["entropy_dist", "entropy_confidence", "max_change", "min_change"]:
+                elif selection_strategy in ["entropy_dist", "entropy_confidence", "max_change", "min_change", "mix"]:
                     p_index = sorted_index[num_selection]
                 num_selection += 1
                 if p_index in match_result[1]:
