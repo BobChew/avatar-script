@@ -270,7 +270,7 @@ if __name__ == "__main__":
                 if DEBUG:
                     print sorted_index
             # My new mix model strategy
-            if selection_strategy == "mix":
+            if selection_strategy in ["2mix", "3mix"]:
                 brute_force_match = build_confidence_table(emission_prob, transition_prob)
                 confidence_table = []
                 for sample in brute_force_match:
@@ -287,13 +287,15 @@ if __name__ == "__main__":
                     if model_change[i][0] is None:
                         model_change[i] = [float("inf"), Decimal("inf")]
                 model_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
-                for i in range(len(emission_prob)):
-                    emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
-                dentropy_index = sort_by_entropy(emission_prob)
+                if selection_strategy == "3mix":
+                    for i in range(len(emission_prob)):
+                        emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
+                    dentropy_index = sort_by_entropy(emission_prob)
                 # combine the ranking lists
                 score_list = [0 for i in range(len(trace["p"]))]
                 for i in range(len(centropy_index)):
-                    score_list[dentropy_index[i]] += i
+                    if selection_strategy == "3mix":
+                        score_list[dentropy_index[i]] += i
                     score_list[centropy_index[i]] += i
                     score_list[model_index[i]] += i
                 sorted_index = sorted(range(len(score_list)), key=lambda k: score_list[k])
@@ -309,7 +311,7 @@ if __name__ == "__main__":
                     p_index = num_selection
                 elif selection_strategy in ["random", "binary"]:
                     p_index = shuffle_index[num_selection]
-                elif selection_strategy in ["entropy_dist", "entropy_confidence", "max_change", "min_change", "mix"]:
+                elif selection_strategy in ["entropy_dist", "entropy_confidence", "max_change", "min_change", "2mix", "3mix"]:
                     p_index = sorted_index[num_selection]
                 num_selection += 1
                 if p_index in match_result[1]:
@@ -319,7 +321,7 @@ if __name__ == "__main__":
                         first_hit = True
             num_selection_table.append(num_selection)
             selection_acc.append(float(num_wrong) / float(num_selection))
-            print "Finished " + str(line_count) + "trajectories..."
+            print "Finished " + str(line_count) + " trajectories..."
             line_count += 1
         # Calculate the statstic result
         avg_time = float(sum(selection_time)) / float(len(selection_time))
