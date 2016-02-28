@@ -296,10 +296,12 @@ if __name__ == "__main__":
                 # combine the ranking lists
                 score_list = [0 for i in range(len(trace["p"]))]
                 for i in range(len(centropy_index)):
-                    if selection_strategy == "3mix":
+                    if selection_strategy != "2mix":
+                        score_list[centropy_index[i]] += i
+                    if selection_strategy != "entropy_mix":
+                        score_list[model_index[i]] += i
+                    if selection_strategy != "global_mix":
                         score_list[dentropy_index[i]] += i
-                    score_list[centropy_index[i]] += i
-                    score_list[model_index[i]] += i
                 sorted_index = sorted(range(len(score_list)), key=lambda k: score_list[k])
             selection_end = time.time()
             selection_time.append(selection_end - selection_start)
