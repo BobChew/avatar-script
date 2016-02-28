@@ -270,24 +270,26 @@ if __name__ == "__main__":
                 if DEBUG:
                     print sorted_index
             # My new mix model strategy
-            if selection_strategy in ["2mix", "3mix"]:
-                brute_force_match = build_confidence_table(emission_prob, transition_prob)
-                confidence_table = []
-                for sample in brute_force_match:
-                    sample_result = []
-                    for result in sample:
-                        if result[1] is not None:
-                            sample_result.append(result[0])
-                    confidence_table.append(sample_result)
-                centropy_index = sort_by_entropy(confidence_table)
-                path_index = [int(index) for index in path_index]
-                model_change = model_change_table(emission_prob, transition_prob, path_index)
-                # For those points who have only one candidate road, put them at the bottom of the list
-                for i in range(len(model_change)):
-                    if model_change[i][0] is None:
-                        model_change[i] = [float("inf"), Decimal("inf")]
-                model_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
-                if selection_strategy == "3mix":
+            if selection_strategy in ["3mix", "entropy_mix", "global_mix", "2mix"]:
+                if selection_strategy != "2mix":
+                    brute_force_match = build_confidence_table(emission_prob, transition_prob)
+                    confidence_table = []
+                    for sample in brute_force_match:
+                        sample_result = []
+                        for result in sample:
+                            if result[1] is not None:
+                                sample_result.append(result[0])
+                        confidence_table.append(sample_result)
+                    centropy_index = sort_by_entropy(confidence_table)
+                if selection_strategy != "entropy_mix":
+                    path_index = [int(index) for index in path_index]
+                    model_change = model_change_table(emission_prob, transition_prob, path_index)
+                    # For those points who have only one candidate road, put them at the bottom of the list
+                    for i in range(len(model_change)):
+                        if model_change[i][0] is None:
+                            model_change[i] = [float("inf"), Decimal("inf")]
+                    model_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
+                if selection_strategy != "global_mix":
                     for i in range(len(emission_prob)):
                         emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
                     dentropy_index = sort_by_entropy(emission_prob)
