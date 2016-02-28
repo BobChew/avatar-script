@@ -295,7 +295,7 @@ if __name__ == "__main__":
                     dentropy_index = sort_by_entropy(emission_prob)
                 # combine the ranking lists
                 score_list = [0 for i in range(len(trace["p"]))]
-                for i in range(len(centropy_index)):
+                for i in range(len(trace["p"])):
                     if selection_strategy != "2mix":
                         score_list[centropy_index[i]] += i
                     if selection_strategy != "entropy_mix":
