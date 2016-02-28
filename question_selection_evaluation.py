@@ -315,7 +315,7 @@ if __name__ == "__main__":
                     p_index = num_selection
                 elif selection_strategy in ["random", "binary"]:
                     p_index = shuffle_index[num_selection]
-                elif selection_strategy in ["entropy_dist", "entropy_confidence", "max_change", "min_change", "2mix", "3mix"]:
+                elif selection_strategy in ["entropy_dist", "entropy_confidence", "max_change", "min_change", "2mix", "3mix", "entropy_mix", "global_mix"]:
                     p_index = sorted_index[num_selection]
                 num_selection += 1
                 if p_index in match_result[1]:
