@@ -358,11 +358,11 @@ if __name__ == "__main__":
                             match_result[0]) + " samples has been matched to the right road!"
                     merged_p = None
                     merged_r = None
-                    dynamic_start = time.time()
                 # If the point is matched to the right road, copy the accuracy of the previous point
                 else:
                     acc_vector.append(acc_vector[len(acc_vector) - 1])
                 # Dynamically tune the weight list
+                dynamic_start = time.time()
                 weight_list[p_index] = -Decimal("inf")
                 if reperform_launch == 1:
                     modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
