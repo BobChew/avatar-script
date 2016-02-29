@@ -367,7 +367,8 @@ if __name__ == "__main__":
                 if reperform_launch == 1:
                     modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
                     for modified_index in modified_list:
-                        weight_list[modified_index] /= Decimal(2.0)
+                        # weight_list[modified_index] /= Decimal(2.0)
+                        weight_list[modified_index] = Decimal(0.0)
                     # print weight_list
                 dynamic_end = time.time()
                 dynamic_selection_time.append(dynamic_end - dynamic_start)
