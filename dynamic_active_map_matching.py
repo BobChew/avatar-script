@@ -189,7 +189,7 @@ def model_change_table(emission_prob, transition_prob, path_index):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 9:
         # Reperform strategy includes: scan, modify
         # Selection strategy includes: forward, backward, binary, random, entropy_dist, entropy_confidence, max_change, min_change
         print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city id> <user id> <selection strategy> <output prefix>"
