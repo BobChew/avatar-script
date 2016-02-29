@@ -269,8 +269,8 @@ if __name__ == "__main__":
                 for i in range(len(emission_prob)):
                     emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
                 weight_list = get_entropy_list(emission_prob)
-                # if DEBUG:
-                print weight_list
+                if DEBUG:
+                    print weight_list
             if selection_strategy == "entropy_confidence":
                 brute_force_match = build_confidence_table(emission_prob, transition_prob)
                 confidence_table = []
@@ -282,8 +282,8 @@ if __name__ == "__main__":
                     confidence_table.append(sample_result)
                 # print confidence_table
                 weight_list = get_entropy_list(confidence_table)
-                # if DEBUG:
-                print weight_list
+                if DEBUG:
+                    print weight_list
             if selection_strategy == "min_change":
                 # Convert string to int
                 path_index = [int(index) for index in path_index]
@@ -368,7 +368,7 @@ if __name__ == "__main__":
                     modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
                     for modified_index in modified_list:
                         weight_list[modified_index] /= Decimal(2.0)
-                    print weight_list
+                    # print weight_list
                 dynamic_end = time.time()
                 dynamic_selection_time.append(dynamic_end - dynamic_start)
                 selection_num += 1
