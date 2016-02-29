@@ -189,10 +189,10 @@ def model_change_table(emission_prob, transition_prob, path_index):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 9:
+    if len(sys.argv) != 10:
         # Reperform strategy includes: scan, modify
         # Selection strategy includes: forward, backward, binary, random, entropy_dist, entropy_confidence, max_change, min_change
-        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city id> <user id> <selection strategy> <output prefix>"
+        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city id> <user id> <selection strategy> <reduction rate> <output prefix>"
     else:
         # server_prefix = sys.argv[1] + "://" + sys.argv[2] + ":" + sys.argv[3] + "/avatar/"
         server_prefix = sys.argv[1] + "://" + sys.argv[2] + "/avatar/"
@@ -200,7 +200,8 @@ if __name__ == "__main__":
         city = int(sys.argv[5])
         uid = sys.argv[6]
         selection_strategy = sys.argv[7]
-        output_prefix = sys.argv[8]
+        reduction_rate = Decimal(sys.argv[8])
+        output_prefix = sys.argv[9]
         # Build ground truth index
         ground_truth_file = open(ground_truth_src, "r")
         result_file = open(output_prefix + "_dynamic.json", "a")
@@ -367,8 +368,7 @@ if __name__ == "__main__":
                 if reperform_launch == 1:
                     modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
                     for modified_index in modified_list:
-                        # weight_list[modified_index] /= Decimal(2.0)
-                        weight_list[modified_index] *= -1
+                        weight_list[modified_index] *= reduction_rate
                     # print weight_list
                 dynamic_end = time.time()
                 dynamic_selection_time.append(dynamic_end - dynamic_start)
