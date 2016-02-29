@@ -260,7 +260,6 @@ if __name__ == "__main__":
                 remove_history = urllib2.urlopen(url_remove_history)
             except urllib2.HTTPError, e:
                 pass
-            reperform_num = 0  # How many reperform map matching process should be done before the entire trajectory match the ground truth
             pass_num = 0  # How many points user think is mapped to the right road
             modify_num = 0  # How many points user thins is mapped to the wrong road
             task_time = []
@@ -341,7 +340,7 @@ if __name__ == "__main__":
                     url_with_label = server_prefix + "map-matching/perform_with_label/?city=" + str(
                         city) + "&id=" + traj_id + "&pid=" + merged_p + "&rid=" + merged_r + "&uid=" + uid
                     if DEBUG:
-                        print str(reperform_num) + "th reperform map matching url is: " + url_with_label
+                        print str(selection_num) + "th reperform map matching url is: " + url_with_label
                     remap_matching_info = urllib2.urlopen(url_with_label)
                     remap_matching_result = json.load(remap_matching_info)
                     hmm_path_with_label = remap_matching_result
@@ -355,22 +354,23 @@ if __name__ == "__main__":
                             acc_vector.append(acc_vector[len(acc_vector) - 1])
                     if DEBUG:
                         print "The trajectory contains " + str(len(trace["p"])) + " samples. After " + str(
-                            reperform_num) + "th reperform map matching, " + str(
+                            selection_num) + "th reperform map matching, " + str(
                             match_result[0]) + " samples has been matched to the right road!"
                     merged_p = None
                     merged_r = None
                     dynamic_start = time.time()
-                    # Dynamically tune the weight list
-                    weight_list[p_index] = -Decimal("inf")
+                # If the point is matched to the right road, copy the accuracy of the previous point
+                else:
+                    acc_vector.append(acc_vector[len(acc_vector) - 1])
+                # Dynamically tune the weight list
+                weight_list[p_index] = -Decimal("inf")
+                if reperform_launch == 1:
                     modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
                     for modified_index in modified_list:
                         weight_list[modified_index] /= Decimal(2.0)
                     print weight_list
-                    dynamic_end = time.time()
-                    dynamic_selection_time.append(dynamic_end - dynamic_start)
-                # If the point is matched to the right road, copy the accuracy of the previous point
-                else:
-                    acc_vector.append(acc_vector[len(acc_vector) - 1])
+                dynamic_end = time.time()
+                dynamic_selection_time.append(dynamic_end - dynamic_start)
                 selection_num += 1
                 if selection_num == len(trace["p"]) and len(trace["p"]) != match_result[0]:
                     print "After scanning all the points on trajectory " + traj_id + ", there is still something wrong with map matching result!"
