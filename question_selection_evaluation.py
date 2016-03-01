@@ -56,7 +56,7 @@ def sort_by_entropy(prob_table):
         entropy = Decimal(0.0)
         for prob in sample:
             # Shannon entropy: sum of -p * logbp, we take b = 2
-            if Decimal(prob) != Decimal(1e-300):
+            if Decimal(prob) > Decimal(1e-300):
                 prob_l = math.log(Decimal(prob), 2)
                 entropy -= Decimal(prob) * Decimal(prob_l)
         entropy_list.append(entropy)
