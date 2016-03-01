@@ -56,7 +56,7 @@ def sort_by_entropy(prob_table):
         entropy = Decimal(0.0)
         for prob in sample:
             # Shannon entropy: sum of -p * logbp, we take b = 2
-            if Decimal(prob) > Decimal(1e-300):
+            if Decimal(prob) != Decimal(1e-300):
                 prob_l = math.log(Decimal(prob), 2)
                 entropy -= Decimal(prob) * Decimal(prob_l)
         entropy_list.append(entropy)
@@ -108,7 +108,7 @@ def build_confidence_table(emission_prob, transition_prob):
     for p in range(len(emission_prob)):
         sample_confidence = []
         for c in range(len(emission_prob[0])):
-            if Decimal(emission_prob[p][c]) > Decimal(1e-300):
+            if Decimal(emission_prob[p][c]) != Decimal(1e-300):
                 result = fixed_point_hmm(emission_prob, transition_prob, p, c)
                 sample_confidence.append(result)
             else:
@@ -223,7 +223,7 @@ if __name__ == "__main__":
                     print shuffle_index
             if selection_strategy == "entropy_dist":
                 for i in range(len(emission_prob)):
-                    emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
+                    emission_prob[i] = filter(lambda x : x != 1e-300, emission_prob[i])
                 sorted_index = sort_by_entropy(emission_prob)
                 if DEBUG:
                     print sorted_index
@@ -279,7 +279,7 @@ if __name__ == "__main__":
                     model_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
                 if selection_strategy != "global_mix":
                     for i in range(len(emission_prob)):
-                        emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
+                        emission_prob[i] = filter(lambda x : x != 1e-300, emission_prob[i])
                     dentropy_index = sort_by_entropy(emission_prob)
                 # combine the ranking lists
                 score_list = [0 for i in range(len(trace["p"]))]
