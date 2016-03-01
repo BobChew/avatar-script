@@ -69,8 +69,8 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
     chosen_index = []
     ini_prob = []
     tmp_emission_prob = emission_prob[:]
-    for t in range(tmp_emission_prob):
-        for i in range(len(emission_prob[t])):
+    for t in range(len(tmp_emission_prob)):
+        for i in range(len(tmp_emission_prob[t])):
             if p_index == t:
                 if c_index == i:
                     tmp_emission_prob[t][i] = 1.0
@@ -85,7 +85,7 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
         for current in transition_prob[t]:
             candidate_prob = []
             for i in range(len(current)):
-                value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(emission_prob[t + 1][i])
+                value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(tmp_emission_prob[t + 1][i])
                 candidate_prob.append(value)
             state_prob.append(max(candidate_prob))
             prev_index.append(candidate_prob.index(max(candidate_prob)))
