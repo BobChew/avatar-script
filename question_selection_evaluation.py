@@ -68,16 +68,15 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
     map_matching_prob = []
     chosen_index = []
     ini_prob = []
-    tmp_emission_prob = emission_prob[:]
-    for t in range(len(tmp_emission_prob)):
-        for i in range(len(tmp_emission_prob[t])):
-            if p_index == t:
-                if c_index == i:
-                    tmp_emission_prob[t][i] = 1.0
-                else:
-                    tmp_emission_prob[t][i] = 0.0
-    for first in tmp_emission_prob[0]:
-        ini_prob.append(Decimal(first))
+    if p_index == 0:
+        for i in range(len(emission_prob[0])):
+            if c_index == i:
+                ini_prob.append(Decimal(emission_prob[0][i]) * Decimal(1.0))
+            else:
+                ini_prob.append(Decimal(emission_prob[0][i]) * Decimal(0.0))
+    else:
+        for first in emission_prob[0]:
+            ini_prob.append(Decimal(first))
     map_matching_prob.append(ini_prob)
     for t in range(len(transition_prob)):
         state_prob = []
@@ -85,7 +84,15 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
         for current in transition_prob[t]:
             candidate_prob = []
             for i in range(len(current)):
-                value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(tmp_emission_prob[t + 1][i])
+                if p_index == t:
+                    if c_index == i:
+                        value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(
+                            emission_prob[t + 1][i]) * Decimal(1.0)
+                    else:
+                        value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(
+                            emission_prob[t + 1][i]) * Decimal(0.0)
+                else:
+                    value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(emission_prob[t + 1][i])
                 candidate_prob.append(value)
             state_prob.append(max(candidate_prob))
             prev_index.append(candidate_prob.index(max(candidate_prob)))
@@ -93,14 +100,55 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
         map_matching_prob.append(state_prob)
     hmm_path_index = []
     final_prob = map_matching_prob[len(map_matching_prob) - 1]
-    final_index = final_prob.index(max(final_prob))
+    if p_index == len(map_matching_prob) - 1:
+        final_index = c_index
+    else:
+        final_index = final_prob.index(max(final_prob))
     confidence = final_prob[final_index]
+    current_index = final_index
     hmm_path_index.append(final_index)
     for i in range(len(chosen_index), 0, -1):
         prev_index = chosen_index[i - 1][hmm_path_index[len(hmm_path_index) - 1]]
         hmm_path_index.append(prev_index)
+        current_index = prev_index
     hmm_path_index.reverse()
     return [confidence, hmm_path_index]
+    # map_matching_prob = []
+    # chosen_index = []
+    # ini_prob = []
+    # tmp_emission_prob = emission_prob[:]
+    # for t in range(len(tmp_emission_prob)):
+    #     for i in range(len(tmp_emission_prob[t])):
+    #         if p_index == t:
+    #             if c_index == i:
+    #                 tmp_emission_prob[t][i] = 1.0
+    #             else:
+    #                 tmp_emission_prob[t][i] = 0.0
+    # for first in tmp_emission_prob[0]:
+    #     ini_prob.append(Decimal(first))
+    # map_matching_prob.append(ini_prob)
+    # for t in range(len(transition_prob)):
+    #     state_prob = []
+    #     prev_index = []
+    #     for current in transition_prob[t]:
+    #         candidate_prob = []
+    #         for i in range(len(current)):
+    #             value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(tmp_emission_prob[t + 1][i])
+    #             candidate_prob.append(value)
+    #         state_prob.append(max(candidate_prob))
+    #         prev_index.append(candidate_prob.index(max(candidate_prob)))
+    #     chosen_index.append(prev_index)
+    #     map_matching_prob.append(state_prob)
+    # hmm_path_index = []
+    # final_prob = map_matching_prob[len(map_matching_prob) - 1]
+    # final_index = final_prob.index(max(final_prob))
+    # confidence = final_prob[final_index]
+    # hmm_path_index.append(final_index)
+    # for i in range(len(chosen_index), 0, -1):
+    #     prev_index = chosen_index[i - 1][hmm_path_index[len(hmm_path_index) - 1]]
+    #     hmm_path_index.append(prev_index)
+    # hmm_path_index.reverse()
+    # return [confidence, hmm_path_index]
 
 
 def build_confidence_table(emission_prob, transition_prob):
