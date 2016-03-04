@@ -134,15 +134,15 @@ def build_confidence_table(emission_prob, transition_prob, fixed_p, fixed_c):
     confidence_table = []
     for p in range(len(emission_prob)):
         sample_confidence = []
-        if p not in fixed_p:
-            for c in range(len(emission_prob[0])):
-                if Decimal(emission_prob[p][c]) > Decimal(1e-300):
+        for c in range(len(emission_prob[0])):
+            if Decimal(emission_prob[p][c]) > Decimal(1e-300):
+                if p not in fixed_p:
                     result = fixed_point_hmm(emission_prob, transition_prob, fixed_p + [p], fixed_c + [c])
-                    sample_confidence.append(result)
                 else:
-                    sample_confidence.append([0.0, None])
-        else:
-            result = fixed_point_hmm(emission_prob, transition_prob, fixed_p, fixed_c)
+                    result = fixed_point_hmm(emission_prob, transition_prob, fixed_p, fixed_c)
+                    sample_confidence.append(result)
+            else:
+                sample_confidence.append([0.0, None])
             sample_confidence.append(result)
         confidence_table.append(sample_confidence)
     return confidence_table
