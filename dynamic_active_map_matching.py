@@ -134,15 +134,16 @@ def build_confidence_table(emission_prob, transition_prob, fixed_p, fixed_c):
     confidence_table = []
     for p in range(len(emission_prob)):
         sample_confidence = []
-        for c in range(len(emission_prob[0])):
-            if p in fixed_p:
-                p = 0
-            else:
+        if p not in fixed_p:
+            for c in range(len(emission_prob[0])):
                 if Decimal(emission_prob[p][c]) > Decimal(1e-300):
-                    result = fixed_point_hmm(emission_prob, transition_prob, p, c)
+                    result = fixed_point_hmm(emission_prob, transition_prob, fixed_p + [p], fixed_c + [c])
                     sample_confidence.append(result)
                 else:
                     sample_confidence.append([0.0, None])
+        else:
+            result = fixed_point_hmm(emission_prob, transition_prob, fixed_p, fixed_c)
+            sample_confidence.append(result)
         confidence_table.append(sample_confidence)
     return confidence_table
 
@@ -166,8 +167,7 @@ def get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_c
         confidence_table.append(sample_result)
     # print confidence_table
     weight_list = get_entropy_list(confidence_table)
-    if DEBUG:
-        print weight_list
+    return weight_list
 
 
 def model_change_table(emission_prob, transition_prob, path_index):
@@ -232,6 +232,7 @@ if __name__ == "__main__":
         num_first_hit = []
         # Record the number of right matches after each scan for each trajectory
         acc_table = []
+        line_count = 1
         for line in ground_truth_file.readlines():
             ground_truth = json.loads(line)
             true_path = {}
@@ -291,16 +292,7 @@ if __name__ == "__main__":
                 if DEBUG:
                     print weight_list
             if selection_strategy == "entropy_confidence":
-                brute_force_match = build_confidence_table(emission_prob, transition_prob)
-                confidence_table = []
-                for sample in brute_force_match:
-                    sample_result = []
-                    for result in sample:
-                        if result[1] is not None:
-                            sample_result.append(result[0])
-                    confidence_table.append(sample_result)
-                # print confidence_table
-                weight_list = get_entropy_list(confidence_table)
+                weight_list = get_entropy_confidence_list(emission_prob, transition_prob, [], [])
                 if DEBUG:
                     print weight_list
             if selection_strategy == "min_change":
@@ -327,6 +319,8 @@ if __name__ == "__main__":
             merged_p = None
             merged_r = None
             scanned_list = []
+            fixed_p = []
+            fixed_r = []
             while len(trace["p"]) != match_result[0]:
                 # Sequentially choose samples along the trajectory to ask user
                 if selection_strategy in ["entropy_dist", "entropy_confidence"]:
@@ -343,6 +337,8 @@ if __name__ == "__main__":
                 else:
                     merged_p += "," + sample_id
                     merged_r += "," + true_path[p_index]
+                fixed_p.append(p_index)
+                fixed_r.append(true_path[p_index])
                 if p_index not in match_result[1]:
                     pass_num += 1
                 else:
@@ -382,6 +378,10 @@ if __name__ == "__main__":
                     acc_vector.append(acc_vector[len(acc_vector) - 1])
                 # Dynamically tune the weight list
                 dynamic_start = time.time()
+                if selection_strategy == "entropy_confidence":
+                    weight_list = get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_r)
+                    if DEBUG:
+                        print weight_list
                 weight_list[p_index] = -Decimal("inf")
                 if reperform_launch == 1:
                     modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
@@ -409,6 +409,8 @@ if __name__ == "__main__":
             # output.write(traj_id + "," + uid + "," + reperform_strategy + "," + selection_strategy + "," + str(reperform_num) + "\n")
             if DEBUG:
                 print str(selection_num) + " reperform map matching process are performed before the entire trajectory match the ground truth!"
+            print "Finished " + str(line_count) + " trajectories..."
+            line_count += 1
         acc_file = open(output_prefix + "_dynamic_acc.json", "a")
         acc_str = json.dumps(acc_table)
         acc_file.write(acc_str)
