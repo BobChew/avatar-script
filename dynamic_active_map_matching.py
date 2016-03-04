@@ -99,8 +99,8 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
         for current in transition_prob[t]:
             candidate_prob = []
             for i in range(len(current)):
-                if p_index == t:
-                    if c_index == i:
+                if t in p_index:
+                    if i == c_index[p_index.index(t)]:
                         value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(
                             emission_prob[t + 1][i]) * Decimal(1.0)
                     else:
@@ -130,16 +130,19 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
     return [confidence, hmm_path_index]
 
 
-def build_confidence_table(emission_prob, transition_prob):
+def build_confidence_table(emission_prob, transition_prob, fixed_p, fixed_c):
     confidence_table = []
     for p in range(len(emission_prob)):
         sample_confidence = []
         for c in range(len(emission_prob[0])):
-            if Decimal(emission_prob[p][c]) > Decimal(1e-300):
-                result = fixed_point_hmm(emission_prob, transition_prob, p, c)
-                sample_confidence.append(result)
+            if p in fixed_p:
+                p = 0
             else:
-                sample_confidence.append([0.0, None])
+                if Decimal(emission_prob[p][c]) > Decimal(1e-300):
+                    result = fixed_point_hmm(emission_prob, transition_prob, p, c)
+                    sample_confidence.append(result)
+                else:
+                    sample_confidence.append([0.0, None])
         confidence_table.append(sample_confidence)
     return confidence_table
 
@@ -150,6 +153,21 @@ def path_index_change(path1, path2):
         if path1[p] != path2[p]:
             count += 1
     return count
+
+
+def get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_c):
+    brute_force_match = build_confidence_table(emission_prob, transition_prob, fixed_p, fixed_c)
+    confidence_table = []
+    for sample in brute_force_match:
+        sample_result = []
+        for result in sample:
+            if result[1] is not None:
+                sample_result.append(result[0])
+        confidence_table.append(sample_result)
+    # print confidence_table
+    weight_list = get_entropy_list(confidence_table)
+    if DEBUG:
+        print weight_list
 
 
 def model_change_table(emission_prob, transition_prob, path_index):
