@@ -140,10 +140,9 @@ def build_confidence_table(emission_prob, transition_prob, fixed_p, fixed_c):
                     result = fixed_point_hmm(emission_prob, transition_prob, fixed_p + [p], fixed_c + [c])
                 else:
                     result = fixed_point_hmm(emission_prob, transition_prob, fixed_p, fixed_c)
-                    sample_confidence.append(result)
+                sample_confidence.append(result)
             else:
                 sample_confidence.append([0.0, None])
-            sample_confidence.append(result)
         confidence_table.append(sample_confidence)
     return confidence_table
 
