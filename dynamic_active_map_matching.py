@@ -372,7 +372,7 @@ if __name__ == "__main__":
                 dynamic_start = time.time()
                 if selection_strategy == "entropy_confidence":
                     # Find the index of chosen road for the chosen point
-                    find_candidate_url = server_prefix + "map-matching/find_candidates/?city=" + str(city) + "&lat=" + trace["p"][p_index]["p"]["lat"] + "&lng=" + trace["p"][p_index]["p"]["lng"]
+                    find_candidate_url = server_prefix + "map-matching/find_candidates/?city=" + str(city) + "&lat=" + str(trace["p"][p_index]["p"]["lat"]) + "&lng=" + str(trace["p"][p_index]["p"]["lng"])
                     if DEBUG:
                         print "Finding the " + str(selection_num) + "the point's candidate roads url is: " + find_candidate_url
                     candidate_info = urllib2.urlopen(find_candidate_url)
@@ -389,6 +389,8 @@ if __name__ == "__main__":
                     # Add (p_index, r_index) into fixed set
                     fixed_p.append(p_index)
                     fixed_r.append(r_index)
+                    print fixed_p
+                    print fixed_r
                     weight_list = get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_r)
                     if DEBUG:
                         print weight_list
