@@ -101,11 +101,9 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
             for i in range(len(current)):
                 if t in p_index:
                     if i == c_index[p_index.index(t)]:
-                        value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(
-                            emission_prob[t + 1][i]) * Decimal(1.0)
+                        value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(emission_prob[t + 1][i]) * Decimal(1.0)
                     else:
-                        value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(
-                            emission_prob[t + 1][i]) * Decimal(0.0)
+                        value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(emission_prob[t + 1][i]) * Decimal(0.0)
                 else:
                     value = Decimal(map_matching_prob[t][i]) * Decimal(current[i]) * Decimal(emission_prob[t + 1][i])
                 candidate_prob.append(value)
@@ -120,12 +118,10 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
     else:
         final_index = final_prob.index(max(final_prob))
     confidence = final_prob[final_index]
-    current_index = final_index
     hmm_path_index.append(final_index)
     for i in range(len(chosen_index), 0, -1):
         prev_index = chosen_index[i - 1][hmm_path_index[len(hmm_path_index) - 1]]
         hmm_path_index.append(prev_index)
-        current_index = prev_index
     hmm_path_index.reverse()
     return [confidence, hmm_path_index]
 
@@ -336,8 +332,6 @@ if __name__ == "__main__":
                 else:
                     merged_p += "," + sample_id
                     merged_r += "," + true_path[p_index]
-                fixed_p.append(p_index)
-                fixed_r.append(true_path[p_index])
                 if p_index not in match_result[1]:
                     pass_num += 1
                 else:
@@ -351,8 +345,7 @@ if __name__ == "__main__":
                         print "Reperform map matching at " + str(p_index) + "th point!"
                     # sample_id = trace["p"][p_index]["id"]
                     task_start = time.time()
-                    url_with_label = server_prefix + "map-matching/perform_with_label/?city=" + str(
-                        city) + "&id=" + traj_id + "&pid=" + merged_p + "&rid=" + merged_r + "&uid=" + uid
+                    url_with_label = server_prefix + "map-matching/perform_with_label/?city=" + str(city) + "&id=" + traj_id + "&pid=" + merged_p + "&rid=" + merged_r + "&uid=" + uid
                     if DEBUG:
                         print str(selection_num) + "th reperform map matching url is: " + url_with_label
                     remap_matching_info = urllib2.urlopen(url_with_label)
@@ -378,6 +371,24 @@ if __name__ == "__main__":
                 # Dynamically tune the weight list
                 dynamic_start = time.time()
                 if selection_strategy == "entropy_confidence":
+                    # Find the index of chosen road for the chosen point
+                    find_candidate_url = server_prefix + "map-matching/find_candidates/?city=" + str(city) + "&lat=" + trace["p"][p_index]["p"]["lat"] + "&lng=" + trace["p"][p_index]["p"]["lng"]
+                    if DEBUG:
+                        print "Finding the " + str(selection_num) + "the point's candidate roads url is: " + find_candidate_url
+                    candidate_info = urllib2.urlopen(find_candidate_url)
+                    candidate_set = json.load(candidate_info)
+                    r_index = None
+                    if len(candidate_set) >= len(emission_prob[0]):
+                        for i in range(len(emission_prob[0])):
+                            if candidate_set[i] == true_path[p_index]:
+                                r_index = i
+                                break
+                    if r_index is None:
+                        r_index = len(emission_prob[0]) - 1
+                    print r_index
+                    # Add (p_index, r_index) into fixed set
+                    fixed_p.append(p_index)
+                    fixed_r.append(r_index)
                     weight_list = get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_r)
                     if DEBUG:
                         print weight_list
