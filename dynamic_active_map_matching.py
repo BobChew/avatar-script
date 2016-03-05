@@ -388,8 +388,8 @@ if __name__ == "__main__":
                     # Add (p_index, r_index) into fixed set
                     fixed_p.append(p_index)
                     fixed_r.append(r_index)
-                    print fixed_p
-                    print fixed_r
+                    # print fixed_p
+                    # print fixed_r
                     weight_list = get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_r)
                     if reperform_launch == 1:
                         modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
