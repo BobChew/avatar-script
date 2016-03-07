@@ -404,7 +404,7 @@ if __name__ == "__main__":
                         p_max = p_index + 1 if p_index + 1 <= len(trace["p"]) - 1 else len(trace["p"]) - 1
                         for side_index in range(p_min, p_max + 1):
                             weight_list[side_index] *= reduction_rate
-                    for scanned_p in fixed_p:
+                    for scanned_p in scanned_list:
                         weight_list[scanned_p] = -Decimal("inf")
                     if DEBUG:
                         print weight_list
