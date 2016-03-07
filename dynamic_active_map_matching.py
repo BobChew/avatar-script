@@ -85,7 +85,7 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
     ini_prob = []
     if 0 in p_index:
         for i in range(len(emission_prob[0])):
-            if c_index == i:
+            if i == c_index[p_index.index(0)]:
                 ini_prob.append(Decimal(emission_prob[0][i]) * Decimal(1.0))
             else:
                 ini_prob.append(Decimal(emission_prob[0][i]) * Decimal(0.0))
