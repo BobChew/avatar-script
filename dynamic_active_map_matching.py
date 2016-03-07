@@ -202,7 +202,7 @@ def model_change_table(emission_prob, transition_prob, path_index):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 10:
+    if len(sys.argv) != 11:
         # Reperform strategy includes: scan, modify
         # Selection strategy includes: forward, backward, binary, random, entropy_dist, entropy_confidence, max_change, min_change
         print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city id> <user id> <selection strategy> <reduction rate> <output prefix>"
@@ -214,7 +214,8 @@ if __name__ == "__main__":
         uid = sys.argv[6]
         selection_strategy = sys.argv[7]
         reduction_rate = Decimal(sys.argv[8])
-        output_prefix = sys.argv[9]
+        active_strategy = sys.argv[9].split(",")
+        output_prefix = sys.argv[10]
         # Build ground truth index
         ground_truth_file = open(ground_truth_src, "r")
         result_file = open(output_prefix + "_dynamic.json", "a")
@@ -371,30 +372,38 @@ if __name__ == "__main__":
                 # Dynamically tune the weight list
                 dynamic_start = time.time()
                 if selection_strategy == "entropy_confidence":
-                    # Find the index of chosen road for the chosen point
-                    find_candidate_url = server_prefix + "map-matching/find_candidates/?city=" + str(city) + "&lat=" + str(trace["p"][p_index]["p"]["lat"]) + "&lng=" + str(trace["p"][p_index]["p"]["lng"])
-                    if DEBUG:
-                        print "Finding the " + str(selection_num) + "the point's candidate roads url is: " + find_candidate_url
-                    candidate_info = urllib2.urlopen(find_candidate_url)
-                    candidate_set = json.load(candidate_info)
-                    r_index = None
-                    if len(candidate_set) >= len(emission_prob[0]):
-                        for i in range(len(emission_prob[0])):
-                            if candidate_set[i] == true_path[p_index]:
-                                r_index = i
-                                break
-                    if r_index is None:
-                        r_index = len(emission_prob[0]) - 1
-                    # Add (p_index, r_index) into fixed set
-                    fixed_p.append(p_index)
-                    fixed_r.append(r_index)
-                    # print fixed_p
-                    # print fixed_r
-                    weight_list = get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_r)
-                    # if reperform_launch == 1:
-                        # modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
-                        # for modified_index in modified_list:
-                            # weight_list[modified_index] *= reduction_rate
+                    if "fix" in active_strategy:
+                        # Find the index of chosen road for the chosen point
+                        find_candidate_url = server_prefix + "map-matching/find_candidates/?city=" + str(city) + "&lat=" + str(trace["p"][p_index]["p"]["lat"]) + "&lng=" + str(trace["p"][p_index]["p"]["lng"])
+                        if DEBUG:
+                            print "Finding the " + str(selection_num) + "the point's candidate roads url is: " + find_candidate_url
+                        candidate_info = urllib2.urlopen(find_candidate_url)
+                        candidate_set = json.load(candidate_info)
+                        r_index = None
+                        if len(candidate_set) >= len(emission_prob[0]):
+                            for i in range(len(emission_prob[0])):
+                                if candidate_set[i] == true_path[p_index]:
+                                    r_index = i
+                                    break
+                        if r_index is None:
+                            r_index = len(emission_prob[0]) - 1
+                        # Add (p_index, r_index) into fixed set
+                        fixed_p.append(p_index)
+                        fixed_r.append(r_index)
+                        # print fixed_p
+                        # print fixed_r
+                        weight_list = get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_r)
+                    if "influence" in active_strategy:
+                        if reperform_launch == 1:
+                            modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
+                            for modified_index in modified_list:
+                                weight_list[modified_index] *= reduction_rate
+                    if "side" in active_strategy:
+                        # Right now we hard code the range of influenced points
+                        p_min = p_index - 1 if p_index - 1 >= 0 else 0
+                        p_max = p_index + 1 if p_index + 1 <= len(trace["p"]) - 1 else len(trace["p"]) - 1
+                        for side_index in range(p_min, p_max + 1):
+                            weight_list[side_index] *= reduction_rate
                     for scanned_p in fixed_p:
                         weight_list[scanned_p] = -Decimal("inf")
                     if DEBUG:
