@@ -83,7 +83,7 @@ def fixed_point_hmm(emission_prob, transition_prob, p_index, c_index):
     map_matching_prob = []
     chosen_index = []
     ini_prob = []
-    if p_index == 0:
+    if 0 in p_index:
         for i in range(len(emission_prob[0])):
             if c_index == i:
                 ini_prob.append(Decimal(emission_prob[0][i]) * Decimal(1.0))
