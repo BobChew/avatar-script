@@ -35,13 +35,17 @@ if __name__ == "__main__":
         shake = sys.argv[9]
         output_prefix = output_repo + "ground_truth_" + num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake"
         # Seperater trajectroies with different map matching accuracy range
-        output_low_acc = open(output_prefix + "_low_acc" + ".json", "a")      # map matching accuracy < 60%
-        output_mid_acc = open(output_prefix + "_mid_acc" + ".json", "a")      # map matching accuracy >= 60% < 80%
-        output_high_acc = open(output_prefix + "_high_acc" + ".json", "a")     # map matching accuracy >= 80%
-        num_low_acc = 0
-        num_mid_acc = 0
-        num_high_acc = 0
-        while num_low_acc < int(num_traj) or num_mid_acc < int(num_traj) or num_high_acc < int(num_traj):
+        output_50acc = open(output_prefix + "_50acc" + ".json", "a")    # map matching accuracy 50% - 60%
+        output_60acc = open(output_prefix + "_60acc" + ".json", "a")    # map matching accuracy 60% - 70%
+        output_70acc = open(output_prefix + "_70acc" + ".json", "a")    # map matching accuracy 70% - 80%
+        output_80acc = open(output_prefix + "_80acc" + ".json", "a")    # map matching accuracy 80% - 90%
+        output_90acc = open(output_prefix + "_90acc" + ".json", "a")    # map matching accuracy 90% - 100%
+        num_50acc = 0
+        num_60acc = 0
+        num_70acc = 0
+        num_80acc = 0
+        num_90acc = 0
+        while num_50acc < int(num_traj) or num_60acc < int(num_traj) or num_70acc < int(num_traj) or num_80acc < int(num_traj) or num_90acc < int(num_traj):
             url = server_prefix + "simulator/generate_syn_traj/?city=" + city_id + "&traj=1&point=" + num_sample + "&edge=" + str(int(edge) * int(num_sample)) + "&shake=" + shake
             # print "Trajectory generator url is: " + url
             try:
@@ -61,33 +65,57 @@ if __name__ == "__main__":
                 # Perform HMM map matching
                 task_start = time.time()
                 url_hmm = server_prefix + "map-matching/perform/?city=" + city_id + "&id=" + traj_id
-                print "Map matching url is: " + url_hmm
+                # print "Map matching url is: " + url_hmm
                 map_matching_info = urllib2.urlopen(url_hmm)
                 map_matching_result = json.load(map_matching_info)
                 hmm_path = map_matching_result["path"]
                 task_end = time.time()
                 match_result = compare_result_with_truth(hmm_path, true_path)
+                remove_url = server_prefix + "traj/remove/?id=" + traj_id
                 # Choose the right file to output
                 ground_truth_str = json.dumps(traj_set)
                 accuracy = float(match_result[0]) / float(num_sample)
                 if accuracy < 0.6:
-                    if num_low_acc < int(num_traj):
-                        output_low_acc.write(ground_truth_str + "\n")
-                        num_low_acc += 1
-                elif accuracy < 0.8:
-                    if num_mid_acc < int(num_traj):
-                        output_mid_acc.write(ground_truth_str + "\n")
-                        num_mid_acc += 1
+                    if accuracy >= 0.5:
+                        if num_50acc < int(num_traj):
+                            output_50acc.write(ground_truth_str + "\n")
+                            num_50acc += 1
+                        else:
+                            remove_action = urllib2.urlopen(remove_url)
+                elif accuracy < 0.7:
+                    if num_60acc < int(num_traj):
+                        output_60acc.write(ground_truth_str + "\n")
+                        num_60acc += 1
+                    else:
+                        remove_action = urllib2.urlopen(remove_url)
                 # If the map matching result is exactly right, no need to perform active map matching
+                elif accuracy < 0.8:
+                    if num_70acc < int(num_traj):
+                        output_70acc.write(ground_truth_str + "\n")
+                        num_70acc += 1
+                    else:
+                        remove_action = urllib2.urlopen(remove_url)
+                elif accuracy < 0.9:
+                    if num_80acc < int(num_traj):
+                        output_80acc.write(ground_truth_str + "\n")
+                        num_80acc += 1
+                    else:
+                        remove_action = urllib2.urlopen(remove_url)
                 elif accuracy < 1.0:
-                    if num_high_acc < int(num_traj):
-                        output_high_acc.write(ground_truth_str + "\n")
-                        num_high_acc += 1
+                    if num_90acc < int(num_traj):
+                        output_90acc.write(ground_truth_str + "\n")
+                        num_90acc += 1
+                    else:
+                        remove_action = urllib2.urlopen(remove_url)
+                else:
+                    remove_action = urllib2.urlopen(remove_url)
             # print "Created " + str(num_complete_traj) + " trajectories..."
             except urllib2.HTTPError, e:
                 pass
                 # print e.code
-        output_low_acc.close()
-        output_mid_acc.close()
-        output_high_acc.close()
+        output_50acc.close()
+        output_60acc.close()
+        output_70acc.close()
+        output_80acc.close()
+        output_90acc.close()
         print "Finished saving ground truth file!"

@@ -185,7 +185,9 @@ def model_change_table(emission_prob, transition_prob, path_index):
                 if c != path_index[p] and brute_force_match[p][c][1] is not None:
                     index_diff = path_index_change(brute_force_match[p][c][1], path_index)
                     confidence_diff = abs(brute_force_match[p][c][0] - fixed_confidence)
-                    path_change.append([index_diff, confidence_diff])
+                    # We assume that: smaller confidence change and larger index change results in higher priority
+                    path_diff = Decimal(confidence_diff) / Decimal(index_diff)
+                    path_change.append(path_diff)
             if len(path_change) > 0:
                 # We choose the smallest from the vector
                 model_change.append(min(path_change))
@@ -193,7 +195,7 @@ def model_change_table(emission_prob, transition_prob, path_index):
                 print "The target point has no other choice!"
                 # print brute_force_match[p]
                 # print emission_prob[p]
-                model_change.append([None, None])
+                model_change.append(Decimal("inf"))
         else:
             print "The chosen road is too far away from the target point!"
             # print brute_force_match[p]
@@ -288,21 +290,12 @@ if __name__ == "__main__":
                 sorted_index = sort_by_entropy(confidence_table)
                 if DEBUG:
                     print sorted_index
-            if selection_strategy in ["max_change", "min_change"]:
+            if selection_strategy == "min_change":
                 # Convert string to int
                 path_index = [int(index) for index in path_index]
                 model_change = model_change_table(emission_prob, transition_prob, path_index)
-                # For those points who have only one candidate road, put them at the bottom of the list
-                for i in range(len(model_change)):
-                    if model_change[i][0] is None:
-                        if selection_strategy == "min_change":
-                            model_change[i] = [float("inf"), Decimal("inf")]
-                        elif selection_strategy == "max_change":
-                            model_change[i] = [-float("inf"), -Decimal("inf")]
                 # print model_change
                 sorted_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
-                if selection_strategy == "max_change":
-                    sorted_index.reverse()
                 if DEBUG:
                     print sorted_index
             # My new mix model strategy
@@ -351,7 +344,7 @@ if __name__ == "__main__":
                     p_index = num_selection
                 elif selection_strategy in ["random", "binary"]:
                     p_index = shuffle_index[num_selection]
-                elif selection_strategy in ["entropy_dist", "entropy_confidence", "max_change", "min_change", "2mix", "3mix", "entropy_mix", "global_mix"]:
+                elif selection_strategy in ["entropy_dist", "entropy_confidence", "min_change", "2mix", "3mix", "entropy_mix", "global_mix"]:
                     p_index = sorted_index[num_selection]
                 num_selection += 1
                 if p_index in match_result[1]:

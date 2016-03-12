@@ -40,17 +40,6 @@ def compare_result_with_initial(result, initial):
     return diff_index
 
 
-
-def binary_index(index_list, low, high, height):
-    if low < high:
-        mid = (low + high) / 2
-        if mid not in index_list:
-            index_list[mid] = height
-            index_list = binary_index(index_list, low, mid, height + 1)
-            index_list = binary_index(index_list, mid, high, height + 1)
-    return index_list
-
-
 def normalize_prob_table(table):
     norm_prob_table = []
     for sample in table:
@@ -165,36 +154,32 @@ def get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_c
     return weight_list
 
 
-def model_change_table(emission_prob, transition_prob, path_index):
+def model_change_table(emission_prob, transition_prob, path_index, fixed_p, fixed_c):
     model_change = []
-    brute_force_match = build_confidence_table(emission_prob, transition_prob)
+    brute_force_match = build_confidence_table(emission_prob, transition_prob, fixed_p, fixed_c)
     for p in range(len(brute_force_match)):
         if brute_force_match[p][path_index[p]][1] is not None:
             fixed_confidence = brute_force_match[p][path_index[p]][0]
             path_change = []
-            # confidence_change = []
+            confidence_change = []
             for c in range(len(brute_force_match[p])):
                 if c != path_index[p] and brute_force_match[p][c][1] is not None:
-                    # path_change.append(path_index_change(brute_force_match[p][c][1], path_index))
-                    # confidence_change.append(brute_force_match[p][c][0] - fixed_confidence)
-            # if len(path_change) > 0 and len(confidence_change) > 0:
-                # avg_path_change = float(sum(path_change)) / float(len(path_change))
-                # avg_confidence_change = sum(confidence_change) / Decimal(len(confidence_change))
-                # model_change.append([avg_path_change, avg_confidence_change])
-            # else:
-                # print "The target point has no other choice!"
-                # print brute_force_match[p]
-		        # print emission_prob[p]
-                # model_change.append([None, None])
                     index_diff = path_index_change(brute_force_match[p][c][1], path_index)
                     confidence_diff = abs(brute_force_match[p][c][0] - fixed_confidence)
-                    path_change.append([index_diff, confidence_diff])
+                    # We assume that: smaller confidence change and larger index change results in higher priority
+                    if index_diff == 0:
+                        path_diff = Decimal(1.0)
+                    else:
+                        path_diff = Decimal(confidence_diff) / Decimal(index_diff)
+                    path_change.append(path_diff)
             if len(path_change) > 0:
                 # We choose the smallest from the vector
                 model_change.append(min(path_change))
             else:
                 print "The target point has no other choice!"
-                model_change.append([None, None])
+                # print brute_force_match[p]
+                # print emission_prob[p]
+                model_change.append(Decimal("inf"))
         else:
             print "The chosen road is too far away from the target point!"
             # print brute_force_match[p]
@@ -202,10 +187,10 @@ def model_change_table(emission_prob, transition_prob, path_index):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 11:
+    if len(sys.argv) != 10:
         # Reperform strategy includes: scan, modify
         # Selection strategy includes: forward, backward, binary, random, entropy_dist, entropy_confidence, max_change, min_change
-        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city id> <user id> <selection strategy> <reduction rate> <output prefix>"
+        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city id> <user id> <selection strategy> <reduction rate> <active strategy>"
     else:
         # server_prefix = sys.argv[1] + "://" + sys.argv[2] + ":" + sys.argv[3] + "/avatar/"
         server_prefix = sys.argv[1] + "://" + sys.argv[2] + "/avatar/"
@@ -215,24 +200,20 @@ if __name__ == "__main__":
         selection_strategy = sys.argv[7]
         reduction_rate = Decimal(sys.argv[8])
         active_strategy = sys.argv[9].split(",")
-        output_prefix = sys.argv[10]
         # Build ground truth index
         ground_truth_file = open(ground_truth_src, "r")
-        result_file = open(output_prefix + "_dynamic.json", "a")
-        time_file = open(output_prefix + "_dynamic_time.json", "a")
+        map_matching_time = []
+        active_map_matching_time = []
         selection_time = []
         dynamic_selection_time = []
         ini_acc_table = []
-        num_selection_table = []
+        scan_percent = []
         selection_acc = []
         num_first_hit = []
-        # Record the number of right matches after each scan for each trajectory
-        acc_table = []
         line_count = 1
         for line in ground_truth_file.readlines():
             ground_truth = json.loads(line)
             true_path = {}
-            acc_vector = []
             for fragment in ground_truth["ground_truth"][0]:
                 # Skip the connecting path between two samples
                 if len(fragment[1]) != 0:
@@ -248,6 +229,7 @@ if __name__ == "__main__":
             traj_result = json.load(traj_info)
             trace = traj_result["trace"]
             # Perform HMM map matching
+            map_matching_start = time.time()
             url_hmm = server_prefix + "map-matching/perform/?city=" + str(city) + "&id=" + traj_id
             if DEBUG:
                 print "Map matching url is: " + url_hmm
@@ -257,9 +239,10 @@ if __name__ == "__main__":
             emission_prob = map_matching_result["emission_prob"]
             transition_prob = map_matching_result["transition_prob"]
             path_index = map_matching_result["path_index"]
+            map_matching_end = time.time()
+            map_matching_time.append(map_matching_end - map_matching_start)
             match_result = compare_result_with_truth(hmm_path, true_path)
-            ini_acc_table.append(match_result[0])
-            acc_vector.append(match_result[0])
+            ini_acc_table.append(float(match_result[0]) / float(len(trace["p"])))
             initial_path = {}
             for fragment in hmm_path["road"]:
                 # Skip the connected path between two samples
@@ -276,11 +259,21 @@ if __name__ == "__main__":
                 remove_history = urllib2.urlopen(url_remove_history)
             except urllib2.HTTPError, e:
                 pass
-            pass_num = 0  # How many points user think is mapped to the right road
-            modify_num = 0  # How many points user thins is mapped to the wrong road
-            task_time = []
             # Prepare question selection list
             selection_start = time.time()
+            weight_list = []
+            if selection_strategy == "forward":
+                unit = float(2) / (float(len(emission_prob)) * (float(len(emission_prob) + 1)))
+                for i in range(len(emission_prob)):
+                    weight_list.append(unit * float(i + 1))
+            if selection_strategy == "random":
+                shuffle_index = []
+                for i in range(len(trace["p"])):
+                    shuffle_index.append(i)
+                random.shuffle(shuffle_index)
+                unit = float(2) / (float(len(emission_prob)) * (float(len(emission_prob) + 1)))
+                for i in range(len(emission_prob)):
+                    weight_list.append(unit * float(shuffle_index.index(i) + 1))
             if selection_strategy == "entropy_dist":
                 for i in range(len(emission_prob)):
                     emission_prob[i] = filter(lambda x : x > 1e-300, emission_prob[i])
@@ -294,24 +287,16 @@ if __name__ == "__main__":
             if selection_strategy == "min_change":
                 # Convert string to int
                 path_index = [int(index) for index in path_index]
-                model_change = model_change_table(emission_prob, transition_prob, path_index)
-                # For those points who have only one candidate road, put them at the bottom of the list
-                for i in range(len(model_change)):
-                    if model_change[i][0] is None:
-                        if selection_strategy == "min_change":
-                            model_change[i] = [float("inf"), Decimal("inf")]
-                        elif selection_strategy == "max_change":
-                            model_change[i] = [-float("inf"), -Decimal("inf")]
-                # print model_change
+                weight_list = model_change_table(emission_prob, transition_prob, path_index, [], [])
+                # print weight_list
                 # sorted_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
                 if DEBUG:
-                    print model_change
+                    print weight_list
             selection_end = time.time()
             selection_time.append(selection_end - selection_start)
             first_hit = False # When does the first selected point is actually matched wrongly
             num_wrong = len(trace["p"]) - match_result[0] # Total number of wrong points
             # Start reperform map matching process
-            selection_num = 0
             merged_p = None
             merged_r = None
             scanned_list = []
@@ -321,7 +306,9 @@ if __name__ == "__main__":
                 # Sequentially choose samples along the trajectory to ask user
                 if selection_strategy in ["entropy_dist", "entropy_confidence"]:
                     p_index = weight_list.index(max(weight_list))
-                    scanned_list.append(p_index)
+                elif selection_strategy in ["forward", "random", "min_change"]:
+                    p_index = weight_list.index(min(weight_list))
+                scanned_list.append(p_index)
                 if p_index not in match_result[1]:
                     reperform_launch = 0
                 else:
@@ -333,12 +320,8 @@ if __name__ == "__main__":
                 else:
                     merged_p += "," + sample_id
                     merged_r += "," + true_path[p_index]
-                if p_index not in match_result[1]:
-                    pass_num += 1
-                else:
-                    modify_num += 1
                     if not first_hit:
-                        num_first_hit.append(selection_num + 1)
+                        num_first_hit.append(len(scanned_list))
                         first_hit = True
                     # Start the reperform map matching process
                 if reperform_launch == 1:
@@ -348,106 +331,94 @@ if __name__ == "__main__":
                     task_start = time.time()
                     url_with_label = server_prefix + "map-matching/perform_with_label/?city=" + str(city) + "&id=" + traj_id + "&pid=" + merged_p + "&rid=" + merged_r + "&uid=" + uid
                     if DEBUG:
-                        print str(selection_num) + "th reperform map matching url is: " + url_with_label
+                        print str(len(scanned_list) - 1) + "th reperform map matching url is: " + url_with_label
                     remap_matching_info = urllib2.urlopen(url_with_label)
                     remap_matching_result = json.load(remap_matching_info)
                     hmm_path_with_label = remap_matching_result
                     task_end = time.time()
-                    task_time.append(task_end - task_start)
+                    active_map_matching_time.append(task_end - task_start)
                     match_result = compare_result_with_truth(hmm_path_with_label, true_path)
-                    acc_vector.append(match_result[0])
-                    # If the reperform task is finished before all points are scanned, fill the rest points with max accuracy
-                    if match_result[0] == len(trace["p"]):
-                        while len(acc_vector) < len(trace["p"]) + 1:
-                            acc_vector.append(acc_vector[len(acc_vector) - 1])
                     if DEBUG:
                         print "The trajectory contains " + str(len(trace["p"])) + " samples. After " + str(
-                            selection_num) + "th reperform map matching, " + str(
+                            len(scanned_list)) + "th reperform map matching, " + str(
                             match_result[0]) + " samples has been matched to the right road!"
                     merged_p = None
                     merged_r = None
-                # If the point is matched to the right road, copy the accuracy of the previous point
-                else:
-                    acc_vector.append(acc_vector[len(acc_vector) - 1])
                 # Dynamically tune the weight list
                 dynamic_start = time.time()
-                if selection_strategy == "entropy_confidence":
-                    if "fix" in active_strategy:
-                        # Find the index of chosen road for the chosen point
-                        find_candidate_url = server_prefix + "map-matching/find_candidates/?city=" + str(city) + "&lat=" + str(trace["p"][p_index]["p"]["lat"]) + "&lng=" + str(trace["p"][p_index]["p"]["lng"])
-                        if DEBUG:
-                            print "Finding the " + str(selection_num) + "the point's candidate roads url is: " + find_candidate_url
-                        candidate_info = urllib2.urlopen(find_candidate_url)
-                        candidate_set = json.load(candidate_info)
-                        r_index = None
-                        if len(candidate_set) >= len(emission_prob[0]):
-                            for i in range(len(emission_prob[0])):
-                                if candidate_set[i] == true_path[p_index]:
-                                    r_index = i
-                                    break
-                        if r_index is None:
-                            r_index = len(emission_prob[0]) - 1
-                        # Add (p_index, r_index) into fixed set
-                        fixed_p.append(p_index)
-                        fixed_r.append(r_index)
-                        # print fixed_p
-                        # print fixed_r
-                        weight_list = get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_r)
-                    if "influence" in active_strategy:
-                        if reperform_launch == 1:
-                            modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
-                            for modified_index in modified_list:
-                                weight_list[modified_index] *= reduction_rate
-                    if "side" in active_strategy:
-                        # Right now we hard code the range of influenced points
-                        p_min = p_index - 1 if p_index - 1 >= 0 else 0
-                        p_max = p_index + 1 if p_index + 1 <= len(trace["p"]) - 1 else len(trace["p"]) - 1
-                        for side_index in range(p_min, p_max + 1):
-                            weight_list[side_index] *= reduction_rate
-                    for scanned_p in scanned_list:
-                        weight_list[scanned_p] = -Decimal("inf")
+                if "fix" in active_strategy:
+                    # Find the index of chosen road for the chosen point
+                    find_candidate_url = server_prefix + "map-matching/find_candidates/?city=" + str(city) + "&lat=" + str(trace["p"][p_index]["p"]["lat"]) + "&lng=" + str(trace["p"][p_index]["p"]["lng"])
                     if DEBUG:
-                        print weight_list
+                        print "Finding the " + str(len(scanned_list) - 1) + "the point's candidate roads url is: " + find_candidate_url
+                    candidate_info = urllib2.urlopen(find_candidate_url)
+                    candidate_set = json.load(candidate_info)
+                    r_index = None
+                    if len(candidate_set) >= len(emission_prob[0]):
+                        for i in range(len(emission_prob[0])):
+                            if candidate_set[i] == true_path[p_index]:
+                                r_index = i
+                                break
+                    if r_index is None:
+                        r_index = len(emission_prob[0]) - 1
+                    # Add (p_index, r_index) into fixed set
+                    fixed_p.append(p_index)
+                    fixed_r.append(r_index)
+                    # print fixed_p
+                    # print fixed_r
+                    if selection_strategy == "entropy_confidence":
+                        weight_list = get_entropy_confidence_list(emission_prob, transition_prob, fixed_p, fixed_r)
+                    elif selection_strategy == "min_change":
+                        weight_list = model_change_table(emission_prob, transition_prob, path_index, fixed_p, fixed_r)
+                if "influence" in active_strategy:
+                    if reperform_launch == 1:
+                        modified_list = compare_result_with_initial(hmm_path_with_label, initial_path)
+                        for modified_index in modified_list:
+                            if selection_strategy in ["entropy_dist", "entropy_confidence"]:
+                                weight_list[modified_index] *= reduction_rate
+                            if selection_strategy in ["forward", "random", "min_change"]:
+                                weight_list[modified_index] /= reduction_rate
+                if "side" in active_strategy:
+                    # Right now we hard code the range of influenced points
+                    p_min = p_index - 1 if p_index - 1 >= 0 else 0
+                    p_max = p_index + 1 if p_index + 1 <= len(trace["p"]) - 1 else len(trace["p"]) - 1
+                    for side_index in range(p_min, p_max + 1):
+                        weight_list[side_index] *= reduction_rate
+                for scanned_p in scanned_list:
+                    if selection_strategy in ["entropy_dist", "entropy_confidence"]:
+                        weight_list[scanned_p] = -Decimal("inf")
+                    elif selection_strategy in ["forward", "random", "min_change"]:
+                        weight_list[scanned_p] = Decimal("inf")
+                if DEBUG:
+                    print weight_list
                 dynamic_end = time.time()
                 dynamic_selection_time.append(dynamic_end - dynamic_start)
-                selection_num += 1
-                if selection_num == len(trace["p"]) and len(trace["p"]) != match_result[0]:
+                if len(scanned_list) == len(trace["p"]) and len(trace["p"]) != match_result[0]:
                     print "After scanning all the points on trajectory " + traj_id + ", there is still something wrong with map matching result!"
                     for wrong_p_index in match_result[1]:
                         print "The " + str(wrong_p_index) + "th point is matched to road " + match_result[1][wrong_p_index]
                     break
-            acc_table.append(acc_vector)
-            num_selection_table.append(selection_num)
-            selection_acc.append(float(num_wrong) / float(selection_num))
-            result_vector = [traj_id, uid, selection_num, pass_num, modify_num]
-            time_vector = [traj_id, uid, task_time]
-            result_vector.append(scanned_list)
-            result_str = json.dumps(result_vector)
-            result_file.write(result_str + "\n")
-            time_str = json.dumps(time_vector)
-            time_file.write(time_str + "\n")
-            # output.write(traj_id + "," + uid + "," + reperform_strategy + "," + selection_strategy + "," + str(reperform_num) + "\n")
+            scan_percent.append(float(len(scanned_list)) / float(len(trace["p"])))
+            selection_acc.append(float(num_wrong) / float(len(scanned_list)))
             if DEBUG:
-                print str(selection_num) + " reperform map matching process are performed before the entire trajectory match the ground truth!"
+                print str(len(scanned_list)) + " reperform map matching process are performed before the entire trajectory match the ground truth!"
             print "Finished " + str(line_count) + " trajectories..."
             line_count += 1
-        acc_file = open(output_prefix + "_dynamic_acc.json", "a")
-        acc_str = json.dumps(acc_table)
-        acc_file.write(acc_str)
-        acc_file.close()
-        result_file.close()
-        time_file.close()
         ground_truth_file.close()
         # Calculate the statstic result
+        avg_hmm_time = float(sum(map_matching_time)) / float(len(map_matching_time))
+        avg_active_hmm_time = float(sum(active_map_matching_time)) / float(len(active_map_matching_time))
         avg_time = float(sum(selection_time)) / float(len(selection_time))
         avg_dynamic_time = float(sum(dynamic_selection_time)) / float(len(dynamic_selection_time))
         avg_ini_acc = float(sum(ini_acc_table)) / float(len(ini_acc_table))
-        avg_num_selection = float(sum(num_selection_table)) / float(len(num_selection_table))
+        avg_scan_percent = float(sum(scan_percent)) / float(len(scan_percent))
         avg_selection_acc = float(sum(selection_acc)) / float(len(selection_acc))
         avg_first_hit = float(sum(num_first_hit)) / float(len(num_first_hit))
+        print "Map matching takes " + str(avg_hmm_time) + " seconds in average!"
+        print "Active map matching takes " + str(avg_active_hmm_time) + " seconds in average!"
         print selection_strategy + " selection method takes " + str(avg_time) + " seconds in average to generate an ordered sequence!"
         print selection_strategy + " selection method takes " + str(avg_dynamic_time) + " seconds in average to re-order the sequence!"
-        print str(avg_ini_acc) + " points in average are matched to the right road after initial map matching!"
+        print "The average accuracy of the initial map matching is " + str(avg_ini_acc) + "!"
         print str(avg_first_hit) + " points in average are selected before the first wrong point is found!"
-        print str(avg_num_selection) + " points in average are selected before all the wrong points are found!"
+        print str(avg_scan_percent) + " percent of points in average are selected before all the wrong points are found!"
         print "The accuracy of finding wrong points using " + selection_strategy + " strategy is " + str(avg_selection_acc) + " in average!"
