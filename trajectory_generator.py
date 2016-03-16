@@ -22,17 +22,19 @@ def compare_result_with_truth(result, truth):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 10:
-        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <output repository> <city id> <num of traj> <num of sample> <sparsity> <shake>"
+    if len(sys.argv) != 11:
+        print "Input format: python trajectory_generator.py <server type> <protocol> <ip address> <port> <output repository> <city id> <num of traj> <num of sample> <sparsity> <shake>"
     else:
-        # server_prefix = sys.argv[1] + "://" + sys.argv[2] + ":" + sys.argv[3] + "/avatar/"
-        server_prefix = sys.argv[1] + "://" + sys.argv[2] + "/avatar/"
-        output_repo = sys.argv[4]
-        city_id = sys.argv[5]
-        num_traj = sys.argv[6]
-        num_sample = sys.argv[7]
-        edge = sys.argv[8]
-        shake = sys.argv[9]
+        if sys.argv[1] == "celery":
+            server_prefix = sys.argv[2] + "://" + sys.argv[3] + ":" + sys.argv[4] + "/"
+        elif sys.argv[1] == "nginx":
+            server_prefix = sys.argv[2] + "://" + sys.argv[3] + "/avatar/"
+        output_repo = sys.argv[5]
+        city_id = sys.argv[6]
+        num_traj = sys.argv[7]
+        num_sample = sys.argv[8]
+        edge = sys.argv[9]
+        shake = sys.argv[10]
         output_prefix = output_repo + "ground_truth_" + num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake"
         # Seperater trajectroies with different map matching accuracy range
         output_50acc = open(output_prefix + "_50acc" + ".json", "a")    # map matching accuracy 50% - 60%

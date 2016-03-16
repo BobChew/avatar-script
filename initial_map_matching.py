@@ -25,14 +25,16 @@ def compare_result_with_truth(result, truth):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 7:
-        print "Input format: python initial_map_matching.py <protocol> <ip address> <port> <ground_truth_src> <city> <accuracy level>"
+    if len(sys.argv) != 8:
+        print "Input format: python initial_map_matching.py <server type> <protocol> <ip address> <port> <ground_truth_src> <city> <accuracy level>"
     else:
-        # server_prefix = sys.argv[1] + "://" + sys.argv[2] + ":" + sys.argv[3] + "/avatar/"
-        server_prefix = sys.argv[1] + "://" + sys.argv[2] + "/avatar/"
-        ground_truth_src = sys.argv[4]
-        city = sys.argv[5]
-        acc_level = float(sys.argv[6])
+        if sys.argv[1] == "celery":
+            server_prefix = sys.argv[2] + "://" + sys.argv[3] + ":" + sys.argv[4] + "/"
+        elif sys.argv[1] == "nginx":
+            server_prefix = sys.argv[2] + "://" + sys.argv[3] + "/avatar/"
+        ground_truth_src = sys.argv[5]
+        city = sys.argv[6]
+        acc_level = float(sys.argv[7])
         # Build ground truth index
         ground_truth_file = open(ground_truth_src, "r")
         for line in ground_truth_file.readlines():

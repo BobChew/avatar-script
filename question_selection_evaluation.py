@@ -203,16 +203,18 @@ def model_change_table(emission_prob, transition_prob, path_index):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 7:
+    if len(sys.argv) != 8:
         # Reperform strategy includes: scan, modify
         # Selection strategy includes: forward, backward, binary, random, entropy_dist, entropy_confidence, max_change, min_change
-        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city id> <selection strategy>"
+        print "Input format: python trajectory_generator.py <server type> <protocol> <ip address> <port> <ground_truth_src> <city id> <selection strategy>"
     else:
-        # server_prefix = sys.argv[1] + "://" + sys.argv[2] + ":" + sys.argv[3] + "/avatar/"
-        server_prefix = sys.argv[1] + "://" + sys.argv[2] + "/avatar/"
-        ground_truth_src = sys.argv[4]
-        city = int(sys.argv[5])
-        selection_strategy = sys.argv[6]
+        if sys.argv[1] == "celery":
+            server_prefix = sys.argv[2] + "://" + sys.argv[3] + ":" + sys.argv[4] + "/"
+        elif sys.argv[1] == "nginx":
+            server_prefix = sys.argv[2] + "://" + sys.argv[3] + "/avatar/"
+        ground_truth_src = sys.argv[5]
+        city = int(sys.argv[6])
+        selection_strategy = sys.argv[7]
         # Build ground truth index
         ground_truth_file = open(ground_truth_src, "r")
         # result_file = open(output_prefix + "_" + sys.argv[7] + "_" + sys.argv[8] + ".json", "a")

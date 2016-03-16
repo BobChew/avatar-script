@@ -44,3 +44,4 @@ if __name__ == "__main__":
 		    if num == s:
 			count += 1
                 print "With " + str(s) + " points, " + str(e) + " edges, and " + str(sh) + " shakes, " + str(count) + " trajectories are matched with ground truth!"
+

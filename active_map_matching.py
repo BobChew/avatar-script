@@ -174,19 +174,21 @@ def model_change_table(emission_prob, transition_prob, path_index):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 10:
+    if len(sys.argv) != 11:
         # Reperform strategy includes: scan, modify
         # Selection strategy includes: forward, backward, binary, random, entropy_dist, entropy_confidence, max_change, min_change
-        print "Input format: python trajectory_generator.py <protocol> <ip address> <port> <ground_truth_src> <city id> <user id> <reperform strategy> <selection strategy> <output prefix>"
+        print "Input format: python trajectory_generator.py <server type> <protocol> <ip address> <port> <ground_truth_src> <city id> <user id> <reperform strategy> <selection strategy> <output prefix>"
     else:
-        # server_prefix = sys.argv[1] + "://" + sys.argv[2] + ":" + sys.argv[3] + "/avatar/"
-        server_prefix = sys.argv[1] + "://" + sys.argv[2] + "/avatar/"
-        ground_truth_src = sys.argv[4]
-        city = int(sys.argv[5])
-        uid = sys.argv[6]
-        reperform_strategy = sys.argv[7]
-        selection_strategy = sys.argv[8]
-        output_prefix = sys.argv[9]
+        if sys.argv[1] == "celery":
+            server_prefix = sys.argv[2] + "://" + sys.argv[3] + ":" + sys.argv[4] + "/"
+        elif sys.argv[1] == "nginx":
+            server_prefix = sys.argv[2] + "://" + sys.argv[3] + "/avatar/"
+        ground_truth_src = sys.argv[5]
+        city = int(sys.argv[6])
+        uid = sys.argv[7]
+        reperform_strategy = sys.argv[8]
+        selection_strategy = sys.argv[9]
+        output_prefix = sys.argv[10]
         if reperform_strategy not in ["scan", "modify"]:
             print "No such reperform strategy!"
             print "Reperform strategy inlcudes: scan, modify"
