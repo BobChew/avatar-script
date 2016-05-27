@@ -35,7 +35,7 @@ if __name__ == "__main__":
         num_sample = sys.argv[8]
         edge = sys.argv[9]
         shake = sys.argv[10]
-        output_prefix = output_repo + "ground_truth_" + num_traj + "traj_" + num_sample + "p_" + str(int(edge) * int(num_sample)) + "e_" + shake + "shake"
+        output_prefix = output_repo + "ground_truth_" + num_traj + "traj_" + num_sample + "p_" + str(int(float(edge) * float(num_sample))) + "e_" + shake + "shake"
         # Seperater trajectroies with different map matching accuracy range
         output_50acc = open(output_prefix + "_50acc" + ".json", "a")    # map matching accuracy 50% - 60%
         output_60acc = open(output_prefix + "_60acc" + ".json", "a")    # map matching accuracy 60% - 70%
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         num_80acc = 0
         num_90acc = 0
         while num_50acc < int(num_traj) or num_60acc < int(num_traj) or num_70acc < int(num_traj) or num_80acc < int(num_traj) or num_90acc < int(num_traj):
-            url = server_prefix + "simulator/generate_syn_traj/?city=" + city_id + "&traj=1&point=" + num_sample + "&edge=" + str(int(edge) * int(num_sample)) + "&shake=" + shake
+            url = server_prefix + "simulator/generate_syn_traj/?city=" + city_id + "&traj=1&point=" + num_sample + "&edge=" + str(int(float(edge) * float(num_sample))) + "&shake=" + shake
             # print "Trajectory generator url is: " + url
             try:
                 # Generate a trajectory
