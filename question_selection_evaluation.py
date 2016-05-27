@@ -26,14 +26,66 @@ def compare_result_with_truth(result, truth):
     return [match_count, wrong_match]
 
 
-def binary_index(index_list, low, high, height):
-    if low < high:
-        mid = (low + high) / 2
-        if mid not in index_list:
-            index_list[mid] = height
-            index_list = binary_index(index_list, low, mid, height + 1)
-            index_list = binary_index(index_list, mid, high, height + 1)
-    return index_list
+def compare_result_in_path(result, truth):
+    match_count = 0
+    wrong_match = {}
+    for fragment in result["road"]:
+        # Skip the connected path between two samples
+        if fragment["p"] is not None:
+            rid = fragment["road"]["id"]
+            fragment_index = fragment["p"].split(",")
+            if rid in truth:
+                match_count += len(fragment_index)
+            else:
+                for p_index in fragment_index:
+                    wrong_match[int(p_index)] = rid
+    return [match_count, wrong_match]
+
+
+def jaccard_distance(result, truth):
+    j_union = set(result).union(set(truth))
+    j_inter = set(result).intersection(set(truth))
+    dis = 1.0 - float(len(j_inter)) / float(len(j_union))
+    return dis
+
+
+def levenshtein(a,b):
+    "Calculates the Levenshtein distance between a and b."
+    n, m = len(a), len(b)
+    if n > m:
+        # Make sure n <= m, to use O(min(n,m)) space
+        a,b = b,a
+        n,m = m,n
+    current = range(n+1)
+    for i in range(1,m+1):
+        previous, current = current, [i]+[0]*n
+        for j in range(1,n+1):
+            add, delete = previous[j]+1, current[j-1]+1
+            change = previous[j-1]
+            if a[j-1] != b[i-1]:
+                change = change + 1
+            current[j] = min(add, delete, change)
+    return current[n]
+
+
+def levenshtein_distance(first, second):
+    """Find the Levenshtein distance between two strings."""
+    if len(first) > len(second):
+        first, second = second, first
+    if len(second) == 0:
+        return len(first)
+    first_length = len(first) + 1
+    second_length = len(second) + 1
+    distance_matrix = [range(second_length) for x in range(first_length)]
+    for i in range(1, first_length):
+        for j in range(1, second_length):
+            deletion = distance_matrix[i-1][j] + 1
+            insertion = distance_matrix[i][j-1] + 1
+            substitution = distance_matrix[i-1][j-1]
+            if first[i-1] != second[j-1]:
+                substitution += 1
+            distance_matrix[i][j] = min(insertion, deletion, substitution)
+    return distance_matrix[first_length-1][second_length-1]
 
 
 def normalize_prob_table(table):
@@ -202,6 +254,47 @@ def model_change_table(emission_prob, transition_prob, path_index):
     return model_change
 
 
+def omit_change_table(traj, true_path, true_path_whole, ini_path_whole, path_index):
+    omit_index_change = []
+    omit_jaccard_result = []
+    omit_leven_result = []
+    jaccard_change = []
+    leven_change = []
+    index_change = [0 for i in range(len(traj["trace"]["p"]))]
+    for i in range(len(traj["trace"]["p"])):
+        # Create a new trajectory omitting the target sample
+        url_omit = server_prefix + "traj/remove_point/?id=" + traj["id"] + "&pid=" + traj["trace"]["p"][i]["id"]
+        omit_traj_info = urllib2.urlopen(url_omit)
+        omit_traj = json.load(omit_traj_info)
+        # Perform map matching and save the emission and transition probability tables in cache
+        url_omit_hmm = server_prefix + "map-matching/perform/?city=" + str(city) + "&id=" + omit_traj["id"]
+        omit_map_matching = urllib2.urlopen(url_omit_hmm)
+        omit_map_matching_result = json.load(omit_map_matching)
+        omit_hmm_path = omit_map_matching_result["path"]
+        omit_path_index = omit_map_matching_result["path_index"]
+        omit_path_index = [int(index) for index in omit_path_index]
+        # Insert the index of omitted point back, assuming the omitted point is not changed
+        omit_path_index.insert(i, path_index[i])
+        index_diff = path_index_change(omit_path_index, path_index)
+        omit_index_change.append(index_diff)
+        omit_path_whole = []
+        for fragment in omit_hmm_path["road"]:
+            omit_path_whole.append(fragment["road"]["id"])
+        omit_jaccard_result.append(jaccard_distance(omit_path_whole, true_path_whole))
+        omit_leven_result.append(levenshtein_distance(omit_path_whole, true_path_whole))
+        jaccard_change.append(jaccard_distance(omit_path_whole, ini_path_whole))
+        leven_change.append(levenshtein_distance(omit_path_whole, ini_path_whole))
+        # Calculate the index change of each point
+        for i in range(len(traj["trace"]["p"])):
+            if omit_path_index[i] != path_index[i]:
+                index_change[i] += 1
+        # Delete the new trajectory omitting the target sample
+        url_remove = server_prefix + "traj/remove/?id=" + omit_traj["id"]
+        remove_traj = urllib2.urlopen(url_remove)
+    index_change = [float(change) / float(len(index_change)) for change in index_change]
+    return omit_index_change, omit_jaccard_result, omit_leven_result, jaccard_change, leven_change, index_change
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 8:
         # Reperform strategy includes: scan, modify
@@ -226,10 +319,13 @@ if __name__ == "__main__":
         selection_acc = []
         num_first_hit = []
         line_count = 1
+        # output = open("test_omit_table.json", "a")
         for line in ground_truth_file.readlines():
             ground_truth = json.loads(line)
             true_path = {}
+            true_path_whole = []
             for fragment in ground_truth["ground_truth"][0]:
+                true_path_whole.append(fragment[0])
                 # Skip the connecting path between two samples
                 if len(fragment[1]) != 0:
                     for p_index in fragment[1]:
@@ -253,10 +349,17 @@ if __name__ == "__main__":
             emission_prob = map_matching_result["emission_prob"]
             transition_prob = map_matching_result["transition_prob"]
             path_index = map_matching_result["path_index"]
-            match_result = compare_result_with_truth(hmm_path, true_path)
+            path_index = [int(index) for index in path_index]
+            #match_result = compare_result_with_truth(hmm_path, true_path)
+            match_result = compare_result_in_path(hmm_path, true_path_whole)
             ini_acc_table.append(match_result[0])
-            if DEBUG:
-                print "The trajectory contains " + str(len(trace["p"])) + " samples. After initial map matching, " + str(match_result[0]) + " has been matched to the right road!"
+            hmm_path_whole = []
+            for fragment in hmm_path["road"]:
+                hmm_path_whole.append(fragment["road"]["id"])
+            leven_result = levenshtein_distance(hmm_path_whole, true_path_whole)
+            if leven_result == 0:
+                print "The " + str(line_count) + "th trajectory is right in path!"
+            # print "The trajectory contains " + str(len(trace["p"])) + " samples. After initial map matching, " + str(match_result[0]) + " has been matched to the right road!"
             # Prepare question selection list
             selection_start = time.time()
             if selection_strategy == "random":
@@ -264,13 +367,6 @@ if __name__ == "__main__":
                 for i in range(len(trace["p"])):
                     shuffle_index.append(i)
                 random.shuffle(shuffle_index)
-                if DEBUG:
-                    print shuffle_index
-            if selection_strategy == "binary":
-                bindex = {}
-                bindex = binary_index(bindex, 1, len(trace["p"]) - 1, 1)
-                shuffle_index = sorted(bindex.keys(), key=lambda k: bindex[k])
-                shuffle_index = [0, len(trace["p"]) - 1] + shuffle_index
                 if DEBUG:
                     print shuffle_index
             if selection_strategy == "entropy_dist":
@@ -293,13 +389,27 @@ if __name__ == "__main__":
                 if DEBUG:
                     print sorted_index
             if selection_strategy == "min_change":
-                # Convert string to int
-                path_index = [int(index) for index in path_index]
                 model_change = model_change_table(emission_prob, transition_prob, path_index)
                 # print model_change
                 sorted_index = sorted(range(len(model_change)), key=lambda k: model_change[k])
                 if DEBUG:
                     print sorted_index
+            if selection_strategy in ["omit_index", "omit_jaccard", "omit_leven", "omit_change"]:
+                omit_index_change, omit_jaccard_result, omit_leven_result, jaccard_change, leven_change, index_change = omit_change_table(traj_result, true_path, true_path_whole, hmm_path_whole, path_index)
+                # output_str = json.dumps([match_result[1].keys(), omit_index_change, jaccard_change, leven_change, omit_jaccard_result, omit_leven_result])
+                # output.write(output_str + "\n")
+                if selection_strategy == "omit_index":
+                    sorted_index = sorted(range(len(omit_index_change)), key=lambda k: omit_index_change[k], reverse=True)
+                elif selection_strategy == "omit_jaccard":
+                    sorted_index = sorted(range(len(omit_jaccard_result)), key=lambda k: omit_jaccard_result[k], reverse=True)
+                elif selection_strategy == "omit_leven":
+                    sorted_index = sorted(range(len(omit_leven_result)), key=lambda k: omit_leven_result[k], reverse=True)
+                elif selection_strategy == "omit_change":
+                    influence = [index_change[i] for i in range(len(index_change))]
+                    sorted_index = sorted(range(len(influence)), key=lambda k: influence[k], reverse=True)
+                    sorted_influence = sorted(influence, reverse=True)
+                    print sorted_influence
+                print sorted_index
             # My new mix model strategy
             if selection_strategy in ["3mix", "entropy_mix", "global_mix", "2mix", "ensemble"]:
                 if selection_strategy != "2mix":
@@ -346,7 +456,7 @@ if __name__ == "__main__":
                     p_index = num_selection
                 elif selection_strategy in ["random", "binary"]:
                     p_index = shuffle_index[num_selection]
-                elif selection_strategy in ["entropy_dist", "entropy_confidence", "min_change", "2mix", "3mix", "entropy_mix", "global_mix"]:
+                elif selection_strategy in ["entropy_dist", "entropy_confidence", "min_change", "2mix", "3mix", "entropy_mix", "global_mix", "omit_index", "omit_jaccard", "omit_leven", "omit_change"]:
                     p_index = sorted_index[num_selection]
                 num_selection += 1
                 if p_index in match_result[1]:
@@ -354,11 +464,13 @@ if __name__ == "__main__":
                     if not first_hit:
                         num_first_hit.append(num_selection)
                         first_hit = True
-            num_selection_table.append(num_selection)
-            selection_acc.append(float(num_wrong) / float(num_selection))
+            if num_selection > 0:
+                num_selection_table.append(num_selection)
+                selection_acc.append(float(num_wrong) / float(num_selection))
             print "Finished " + str(line_count) + " trajectories..."
             line_count += 1
         # Calculate the statstic result
+        # output.close()
         avg_time = float(sum(selection_time)) / float(len(selection_time))
         avg_ini_acc = float(sum(ini_acc_table)) / float(len(ini_acc_table))
         avg_num_selection = float(sum(num_selection_table)) / float(len(num_selection_table))

@@ -4,7 +4,9 @@ import urllib2
 import random
 import math
 import time
+import csv
 from decimal import Decimal
+import question_selection_evaluation
 
 
 def compare_result_with_truth(result, truth):
@@ -25,39 +27,41 @@ def compare_result_with_truth(result, truth):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 8:
-        print "Input format: python initial_map_matching.py <server type> <protocol> <ip address> <port> <ground_truth_src> <city> <accuracy level>"
-    else:
-        if sys.argv[1] == "celery":
-            server_prefix = sys.argv[2] + "://" + sys.argv[3] + ":" + sys.argv[4] + "/"
-        elif sys.argv[1] == "nginx":
-            server_prefix = sys.argv[2] + "://" + sys.argv[3] + "/avatar/"
-        ground_truth_src = sys.argv[5]
-        city = sys.argv[6]
-        acc_level = float(sys.argv[7])
-        # Build ground truth index
-        ground_truth_file = open(ground_truth_src, "r")
-        for line in ground_truth_file.readlines():
-            ground_truth = json.loads(line)
-            true_path = {}
-            for fragment in ground_truth["ground_truth"][0]:
-                # Skip the connecting path between two samples
-                if len(fragment[1]) != 0:
-                    for p_index in fragment[1]:
-                        true_path[p_index] = fragment[0]
-            # print true_path
-            traj_id = ground_truth["traj_id"][0]
-            path_length = ground_truth["path_length"][0]
-            # Perform HMM map matching
-            task_start = time.time()
-            url_hmm = server_prefix + "map-matching/perform/?city=" + str(city) + "&id=" + traj_id
-            print "Map matching url is: " + url_hmm
-            map_matching_info = urllib2.urlopen(url_hmm)
-            map_matching_result = json.load(map_matching_info)
-            hmm_path = map_matching_result["path"]
-            task_end = time.time()
-            match_result = compare_result_with_truth(hmm_path, true_path)
-            acc = float(match_result[0]) / 30.0
-            if acc < acc_level or acc >= acc_level + 0.1:
-                print "Accuracy out of bound!"
-        print "Finished!"
+    noise_traj_id = []
+    leven_paths = []
+    orig_traj_id = []
+    # Build ground truth index
+    ground_truth_file = open("test_ground_truth.json", "r")
+    for line in ground_truth_file.readlines():
+        ground_truth = json.loads(line)
+        noise_traj_id.append(ground_truth["traj_id"][0])
+        true_path = []
+        for fragment in ground_truth["ground_truth"][0]:
+            true_path.append(fragment[0])
+        leven_paths.append(true_path)
+    orig_traj_file = open("test_origin_traj_id.csv", "r")
+    traj_list = csv.reader(orig_traj_file)
+    for traj in traj_list:
+        orig_traj_id.append(traj[0])
+    for i in range(len(orig_traj_id)):
+        # Perform HMM map matching
+        url_hmm = "http://127.0.0.1/api/avatar/map-matching/perform/?city=3&id=" + orig_traj_id[i]
+        map_matching_info = urllib2.urlopen(url_hmm)
+        map_matching_result = json.load(map_matching_info)
+        hmm_path = map_matching_result["path"]
+        hmm_path_rids = []
+        for fragment in hmm_path["road"]:
+            hmm_path_rids.append(fragment["road"]["id"])
+        leven_result = question_selection_evaluation.levenshtein_distance(hmm_path_rids, leven_paths[i])
+        if leven_result != 0:
+            print "Original map matching wrong: " + str(i + 1)
+        noise_url_hmm = "http://127.0.0.1/api/avatar/map-matching/perform/?city=3&id=" + noise_traj_id[i]
+        noise_map_matching_info = urllib2.urlopen(noise_url_hmm)
+        noise_map_matching_result = json.load(noise_map_matching_info)
+        noise_hmm_path = noise_map_matching_result["path"]
+        noise_hmm_path_rids = []
+        for fragment in noise_hmm_path["road"]:
+            noise_hmm_path_rids.append(fragment["road"]["id"])
+        noise_leven_result = question_selection_evaluation.levenshtein_distance(hmm_path_rids, noise_hmm_path_rids)
+        if noise_leven_result == 0:
+            print "Noise path is right: " + str(i + 1)

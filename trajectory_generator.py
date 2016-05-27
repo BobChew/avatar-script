@@ -74,43 +74,47 @@ if __name__ == "__main__":
                 task_end = time.time()
                 match_result = compare_result_with_truth(hmm_path, true_path)
                 remove_url = server_prefix + "traj/remove/?id=" + traj_id
-                # Choose the right file to output
-                ground_truth_str = json.dumps(traj_set)
-                accuracy = float(match_result[0]) / float(num_sample)
-                if accuracy < 0.6:
-                    if accuracy >= 0.5:
-                        if num_50acc < int(num_traj):
-                            output_50acc.write(ground_truth_str + "\n")
-                            num_50acc += 1
+                # If the first or last point is wrong, don't use this trajectory
+                if 0 in match_result[1] or int(num_sample) - 1 in match_result[1]:
+                    remove_action = urllib2.urlopen(remove_url)
+                else:
+                    # Choose the right file to output
+                    ground_truth_str = json.dumps(traj_set)
+                    accuracy = (float(match_result[0]) - 2.0) / (float(num_sample) - 2.0)
+                    if accuracy < 0.6:
+                        if accuracy >= 0.5:
+                            if num_50acc < int(num_traj):
+                                output_50acc.write(ground_truth_str + "\n")
+                                num_50acc += 1
+                            else:
+                                remove_action = urllib2.urlopen(remove_url)
+                    elif accuracy < 0.7:
+                        if num_60acc < int(num_traj):
+                            output_60acc.write(ground_truth_str + "\n")
+                            num_60acc += 1
                         else:
                             remove_action = urllib2.urlopen(remove_url)
-                elif accuracy < 0.7:
-                    if num_60acc < int(num_traj):
-                        output_60acc.write(ground_truth_str + "\n")
-                        num_60acc += 1
+                    # If the map matching result is exactly right, no need to perform active map matching
+                    elif accuracy < 0.8:
+                        if num_70acc < int(num_traj):
+                            output_70acc.write(ground_truth_str + "\n")
+                            num_70acc += 1
+                        else:
+                            remove_action = urllib2.urlopen(remove_url)
+                    elif accuracy < 0.9:
+                        if num_80acc < int(num_traj):
+                            output_80acc.write(ground_truth_str + "\n")
+                            num_80acc += 1
+                        else:
+                            remove_action = urllib2.urlopen(remove_url)
+                    elif accuracy < 1.0:
+                        if num_90acc < int(num_traj):
+                            output_90acc.write(ground_truth_str + "\n")
+                            num_90acc += 1
+                        else:
+                            remove_action = urllib2.urlopen(remove_url)
                     else:
                         remove_action = urllib2.urlopen(remove_url)
-                # If the map matching result is exactly right, no need to perform active map matching
-                elif accuracy < 0.8:
-                    if num_70acc < int(num_traj):
-                        output_70acc.write(ground_truth_str + "\n")
-                        num_70acc += 1
-                    else:
-                        remove_action = urllib2.urlopen(remove_url)
-                elif accuracy < 0.9:
-                    if num_80acc < int(num_traj):
-                        output_80acc.write(ground_truth_str + "\n")
-                        num_80acc += 1
-                    else:
-                        remove_action = urllib2.urlopen(remove_url)
-                elif accuracy < 1.0:
-                    if num_90acc < int(num_traj):
-                        output_90acc.write(ground_truth_str + "\n")
-                        num_90acc += 1
-                    else:
-                        remove_action = urllib2.urlopen(remove_url)
-                else:
-                    remove_action = urllib2.urlopen(remove_url)
             # print "Created " + str(num_complete_traj) + " trajectories..."
             except urllib2.HTTPError, e:
                 pass
